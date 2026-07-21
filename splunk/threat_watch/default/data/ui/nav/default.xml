@@ -1,0 +1,13 @@
+<nav search_view="search" color="#1a2035">
+  <view name="threat_watch" default="true" label="Threat Watch Dashboard"/>
+  <collection label="Hunt Searches">
+    <saved source="saved" match="Threat Watch - Hunt:"/>
+  </collection>
+  <collection label="Alerts">
+    <saved source="saved" match="Threat Watch - Alert:"/>
+  </collection>
+  <collection label="Data Management">
+    <saved source="saved" name="Threat Watch - Ingest Clusters"/>
+    <view source="all" match="search"/>
+  </collection>
+</nav>

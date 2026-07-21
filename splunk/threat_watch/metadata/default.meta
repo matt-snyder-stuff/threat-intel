@@ -1,0 +1,51 @@
+[]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[app/threat_watch]
+access = read : [ * ], write : [ admin ]
+export = system
+
+[views/threat_watch]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[savedsearches/Threat Watch - Ingest Clusters]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[savedsearches/Threat Watch - Alert: High-Reach Cluster]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[savedsearches/Threat Watch - Alert: New Threat Actor]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[savedsearches/Threat Watch - Hunt: Cloud Initial Access]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[savedsearches/Threat Watch - Hunt: AI/LLM Abuse]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[savedsearches/Threat Watch - Hunt: Lateral Movement by Known Actors]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[transforms/threat_intel_clusters_lookup]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[transforms/threat_intel_iocs_lookup]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[collections/threat_intel_clusters]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[collections/threat_intel_iocs]
+access = read : [ * ], write : [ admin, power ]
+export = system

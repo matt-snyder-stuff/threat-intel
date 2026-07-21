@@ -1,0 +1,151 @@
+# Threat Intel
+
+An AI-native threat intelligence pipeline powered by OpenCTI, RSS feeds, or Slack — producing a rolling 30-day Threat Watch dashboard + daily Slack digests + hunt-ready IOC packages.
+
+This is a conference demo project for **"Building AI Agents for Threat Intel"**.
+
+---
+
+## How the pipeline works
+
+```
+Source (opencti | slack | rss)
+        │
+        ▼
+sources/<source>.py   →   /tmp/tw-30d-processed.pkl  +  /tmp/tw-30d-published.json
+        │
+        ▼
+generator/build.py    →   threat-watch.html  +  threat-watch-data.json
+        │
+        ├── digest agent     → daily Slack digest
+        ├── threat-hunter    → SIEM hunt queries (SPL / KQL / Sigma)
+        └── ioc-enricher     → public API enrichment (ipapi.co, crt.sh, NVD)
+```
+
+Run the whole pipeline with:
+```bash
+python3 run.py --source splunk --build   # pull from Splunk REST API
+python3 run.py --source rss --build      # no account needed
+python3 run.py --source opencti --build
+python3 run.py --source slack --build
+```
+
+---
+
+## Configuration
+
+All configuration is via environment variables. Copy `.env.example` to `.env` and fill in the values for your chosen source:
+
+```bash
+cp .env.example .env
+source .env
+```
+
+### Splunk source
+- `SPLUNK_URL` — REST API base URL, e.g. `https://your-instance.splunkcloud.com:8089`
+- `SPLUNK_TOKEN` — API token (preferred) OR `SPLUNK_USERNAME` + `SPLUNK_PASSWORD`
+- `SPLUNK_SEARCH` — custom SPL (optional; defaults to `index=threat_intel | table _time, title, description, url, source`)
+- `SPLUNK_EARLIEST` — time modifier (default: `-30d@d`)
+- `SPLUNK_VERIFY_SSL` — set `false` for self-signed certs
+- Field mappings: `SPLUNK_FIELD_NAME`, `SPLUNK_FIELD_DESC`, `SPLUNK_FIELD_URL`, `SPLUNK_FIELD_PUBLISHER`, `SPLUNK_FIELD_TIME`
+
+### Live hunt config (splunk-hunter agent + /hunt-live)
+- Reuses `SPLUNK_URL` + auth above
+- `HUNT_FOCUS` — optional: actor name, technique, CVE, or free text
+
+### OpenCTI source
+- `OPENCTI_URL` — GraphQL endpoint, e.g. `http://host:8080/graphql`
+- `OPENCTI_TOKEN` — API token
+
+### Slack source
+- `SLACK_TOKEN` — bot token (`xoxb-...`)
+- `SLACK_CHANNEL_ID` — channel to read
+
+### RSS source
+- `RSS_FEEDS` — comma-separated feed URLs (optional; defaults to the curated list in `sources/feeds.py`)
+
+### Agent / digest configuration
+- `THREAT_WATCH_URL` — where the built JSON is served (agents read from here)
+- `THREAT_WATCH_FILE` — or a local path to `threat-watch-data.json`
+- `SLACK_TOKEN` — for the digest agent to post
+- `SLACK_CHANNEL_ID` — target channel for digest posts
+
+---
+
+## Slash Commands
+
+| Command | What it does |
+|---------|-------------|
+| `/rebuild [source]` | Fetch from a source and regenerate the dashboard (`splunk` \| `opencti` \| `slack` \| `rss`). |
+| `/splunk-ingest [spl]` | Pull threat intel from Splunk via REST API. Optionally pass a custom SPL query. |
+| `/hunt [focus]` | Generate SIEM hunt queries (SPL + KQL + Sigma) from the current dataset — no live SIEM needed. |
+| `/hunt-live [focus]` | Generate and execute SPL queries live against Splunk; returns actual findings. |
+| `/enrich [ioc ...]` | Enrich IOCs from the dataset (or a provided list) via public APIs. |
+| `/start-digest` | Register a daily Slack digest cron job. |
+
+---
+
+## Agents
+
+| Agent | When to use |
+|-------|-------------|
+| `digest` | Posts a daily summary of the last 24h of cloud/AI reports to Slack. |
+| `threat-hunter` | Generates hunt queries (SPL, KQL, Sigma) from the top signals — no live SIEM needed. |
+| `splunk-hunter` | Executes SPL hunt queries live against Splunk via REST API; returns actual findings. |
+| `ioc-enricher` | Enriches IPs, domains, CVEs via ipapi.co, crt.sh, rdap.org, NVD. No API keys needed. |
+
+---
+
+## Repo structure
+
+```
+run.py                        # top-level CLI: --source, --build
+sources/
+├── base.py                   # shared helpers: actors, publishers, vendors, labels
+├── splunk.py                 # Splunk REST API source (job submit → poll → results)
+├── opencti.py                # OpenCTI GraphQL source
+├── slack.py                  # Slack channel source
+└── rss.py                    # RSS/Atom feed source
+generator/
+├── build.py                  # aggregation + scoring → HTML + JSON (do not modify)
+├── fetch_and_process.py      # legacy wrapper → sources/opencti
+└── fetch_published.py        # legacy wrapper → sources/opencti
+agent/
+└── digest-agent.md           # standalone agent definition (use without Claude Code)
+.claude/
+├── agents/
+│   ├── digest.md             # Claude Code digest agent
+│   ├── threat-hunter.md      # offline hunt query generation (SPL + KQL + Sigma)
+│   ├── splunk-hunter.md      # live Splunk hunt — executes SPL, returns findings
+│   └── ioc-enricher.md       # public API enrichment agent
+└── commands/
+    ├── rebuild.md            # /rebuild command
+    ├── splunk-ingest.md      # /splunk-ingest — pull from Splunk REST API
+    ├── hunt.md               # /hunt command (offline)
+    ├── hunt-live.md          # /hunt-live — execute live against Splunk
+    ├── enrich.md             # /enrich command
+    └── start-digest.md       # /start-digest cron registration
+```
+
+---
+
+## Key data contract
+
+`build.py` reads one file: `/tmp/tw-30d-processed.pkl` — a Python pickle with schema:
+```python
+{"items": [<item>, ...], "cutoff": <datetime>}
+```
+
+Each item must have: `id`, `name`, `created` (timezone-aware UTC datetime), `confidence` (0-100), `all_labels` (list of strings like `"cloud"`, `"ai-llm"`), `publisher`, `url`, `tas` (threat actor names), `t1_vendors`, `t2_vendors`, `description`.
+
+All three sources in `sources/` write this exact schema. `build.py` is source-agnostic.
+
+---
+
+## Extending with a new source
+
+1. Create `sources/myplatform.py`
+2. Implement a `run()` function that reads env vars, builds the items list, and calls `save_pickle(items, cutoff_dt, pkl_out)` and `save_published(pub_dates, pub_sidecar)` from `sources/base.py`
+3. Register it in `run.py`'s `SOURCES` dict with its required env vars
+
+That's it — `build.py`, all agents, and all commands work without modification.

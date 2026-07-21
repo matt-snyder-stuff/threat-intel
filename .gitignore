@@ -1,0 +1,31 @@
+# Generated outputs
+output/
+data/*.pkl
+data/*.json
+data/*.html
+
+# Temp files used during the build pipeline
+/tmp/tw-30d.json
+/tmp/tw-30d-processed.pkl
+/tmp/tw-30d-published.json
+/tmp/tw-30d-cutoff.txt
+/tmp/threat-watch-mockup.html
+/tmp/threat-watch-data.json
+
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars

@@ -1,0 +1,331 @@
+<dashboard version="1.1" theme="dark">
+  <label>Threat Watch Dashboard</label>
+  <description>AI-native threat intelligence — 30-day rolling window | Cloud &amp; AI/LLM focus</description>
+
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="time_tok" searchWhenChanged="true">
+      <label>Time Range</label>
+      <default>
+        <earliest>-30d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="text" token="actor_filter" searchWhenChanged="true">
+      <label>Filter Threat Actor</label>
+      <default>*</default>
+      <prefix>*</prefix>
+      <suffix>*</suffix>
+    </input>
+  </fieldset>
+
+  <!-- =========================================================== -->
+  <!-- ROW 1 — KPI tiles                                           -->
+  <!-- =========================================================== -->
+  <row>
+    <panel>
+      <title>Total Reports (30d)</title>
+      <single>
+        <search>
+          <query>
+| inputlookup threat_intel_clusters_lookup
+| eval ingested_epoch = strptime(ingested_at, "%Y-%m-%dT%H:%M:%SZ")
+| where ingested_epoch >= relative_time(now(), "-30d@d")
+| eval report_count = size
+| stats sum(report_count) as total_reports
+| eval total_reports = if(isnull(total_reports), 0, total_reports)
+          </query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="field">total_reports</option>
+        <option name="colorBy">value</option>
+        <option name="colorMode">none</option>
+        <option name="numberPrecision">0</option>
+        <option name="unit">reports</option>
+        <option name="useColors">1</option>
+        <option name="rangeColors">["0x53A051","0xF8BE34","0xF1813F","0xDC4E41"]</option>
+      </single>
+    </panel>
+
+    <panel>
+      <title>Cloud-Relevant Reports (30d)</title>
+      <single>
+        <search>
+          <query>
+| inputlookup threat_intel_clusters_lookup
+| eval ingested_epoch = strptime(ingested_at, "%Y-%m-%dT%H:%M:%SZ")
+| where ingested_epoch >= relative_time(now(), "-30d@d")
+| where cloud_tags != "" AND cloud_tags != "-"
+| eval report_count = size
+| stats sum(report_count) as cloud_reports
+| eval cloud_reports = if(isnull(cloud_reports), 0, cloud_reports)
+          </query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="field">cloud_reports</option>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="numberPrecision">0</option>
+        <option name="unit">reports</option>
+        <option name="useColors">1</option>
+        <option name="rangeColors">["0x53A051","0xF8BE34","0xF1813F","0xDC4E41"]</option>
+        <option name="rangeValues">[50,100,150]</option>
+      </single>
+    </panel>
+
+    <panel>
+      <title>AI/LLM Reports (30d)</title>
+      <single>
+        <search>
+          <query>
+| inputlookup threat_intel_clusters_lookup
+| eval ingested_epoch = strptime(ingested_at, "%Y-%m-%dT%H:%M:%SZ")
+| where ingested_epoch >= relative_time(now(), "-30d@d")
+| where ai_tags != "" AND ai_tags != "-"
+| eval report_count = size
+| stats sum(report_count) as ai_reports
+| eval ai_reports = if(isnull(ai_reports), 0, ai_reports)
+          </query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="field">ai_reports</option>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="numberPrecision">0</option>
+        <option name="unit">reports</option>
+        <option name="useColors">1</option>
+        <option name="rangeColors">["0x53A051","0xF8BE34","0xF1813F","0xDC4E41"]</option>
+        <option name="rangeValues">[10,30,60]</option>
+      </single>
+    </panel>
+
+    <panel>
+      <title>Active Threat Actors (30d)</title>
+      <single>
+        <search>
+          <query>
+| inputlookup threat_intel_clusters_lookup
+| eval ingested_epoch = strptime(ingested_at, "%Y-%m-%dT%H:%M:%SZ")
+| where ingested_epoch >= relative_time(now(), "-30d@d")
+| makemv delim="|" threat_actors
+| mvexpand threat_actors
+| where isnotnull(threat_actors) AND threat_actors != "" AND threat_actors != "-"
+| stats dc(threat_actors) as active_actors
+| eval active_actors = if(isnull(active_actors), 0, active_actors)
+          </query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="field">active_actors</option>
+        <option name="colorBy">value</option>
+        <option name="colorMode">block</option>
+        <option name="numberPrecision">0</option>
+        <option name="unit">actors</option>
+        <option name="useColors">1</option>
+        <option name="rangeColors">["0x53A051","0xF8BE34","0xF1813F","0xDC4E41"]</option>
+        <option name="rangeValues">[5,15,30]</option>
+      </single>
+    </panel>
+  </row>
+
+  <!-- =========================================================== -->
+  <!-- ROW 2 — Trend charts                                        -->
+  <!-- =========================================================== -->
+  <row>
+    <panel>
+      <title>Threat Actor Activity Over Time (30d)</title>
+      <chart>
+        <search>
+          <query>
+| inputlookup threat_intel_clusters_lookup
+| eval ingested_epoch = strptime(ingested_at, "%Y-%m-%dT%H:%M:%SZ")
+| where ingested_epoch >= relative_time(now(), "-30d@d")
+| eval _time = ingested_epoch
+| makemv delim="|" threat_actors
+| mvexpand threat_actors
+| where isnotnull(threat_actors) AND threat_actors != "" AND threat_actors != "-"
+| where like(threat_actors, "$actor_filter$")
+| timechart span=1d count by threat_actors limit=10 useother=false
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Cluster Appearances</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.seriesColors">[0x1E90FF,0xFF6347,0x32CD32,0xFFD700,0x9370DB,0xFF69B4,0x00CED1,0xFF8C00,0xADFF2F,0x00BFFF]</option>
+        <option name="height">280</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+
+    <panel>
+      <title>Cloud Provider Targeting Breakdown (30d)</title>
+      <chart>
+        <search>
+          <query>
+| inputlookup threat_intel_clusters_lookup
+| eval ingested_epoch = strptime(ingested_at, "%Y-%m-%dT%H:%M:%SZ")
+| where ingested_epoch >= relative_time(now(), "-30d@d")
+| where cloud_tags != "" AND cloud_tags != "-"
+| makemv delim="|" cloud_tags
+| mvexpand cloud_tags
+| where isnotnull(cloud_tags) AND cloud_tags != ""
+| stats count as mentions by cloud_tags
+| sort -mentions
+| rename cloud_tags as provider, mentions as cluster_count
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.barSpacing">2</option>
+        <option name="charting.axisTitleX.text">Cloud Tag</option>
+        <option name="charting.axisTitleY.text">Cluster Count</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="charting.seriesColors">[0x1E90FF]</option>
+        <option name="height">280</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+
+  <!-- =========================================================== -->
+  <!-- ROW 3 — Cluster and vendor tables                           -->
+  <!-- =========================================================== -->
+  <row>
+    <panel>
+      <title>Top Clusters by Reach Score</title>
+      <table>
+        <search>
+          <query><![CDATA[
+| inputlookup threat_intel_clusters_lookup
+| eval ingested_epoch = strptime(ingested_at, "%Y-%m-%dT%H:%M:%SZ")
+| eval reach_score  = tonumber(reach_score)
+| eval size         = tonumber(size)
+| makemv delim="|" cloud_tags
+| makemv delim="|" threat_actors
+| eval cloud_tags    = mvjoin(cloud_tags,    ", ")
+| eval threat_actors = mvjoin(threat_actors, ", ")
+| eval report_link = "<a href=\"" . lead_url . "\" target=\"_blank\">" . lead_name . "</a>"
+| sort -reach_score
+| head 20
+| table reach_score, size, cloud_tags, threat_actors, report_link, ingested_at
+| rename reach_score as "Reach Score", size as "Reports in Cluster", cloud_tags as "Cloud Tags", threat_actors as "Threat Actors", report_link as "Lead Report", ingested_at as "Ingested At"
+          ]]></query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">true</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">false</option>
+        <format type="color" field="Reach Score">
+          <colorPalette type="list">[#53A051,#F8BE34,#F1813F,#DC4E41]</colorPalette>
+          <scale type="threshold">25,50,75</scale>
+        </format>
+      </table>
+    </panel>
+
+    <panel>
+      <title>Vendor Mentions This Week</title>
+      <table>
+        <search>
+          <query><![CDATA[
+| inputlookup threat_intel_clusters_lookup
+| eval ingested_epoch = strptime(ingested_at, "%Y-%m-%dT%H:%M:%SZ")
+| makemv delim="|" publishers
+| mvexpand publishers
+| where isnotnull(publishers) AND publishers != "" AND publishers != "-"
+| eval week = if(ingested_epoch >= relative_time(now(), "-7d@d"), "this_week", "last_week")
+| stats count by publishers, week
+| eval this_week = if(week="this_week", count, 0)
+| eval last_week = if(week="last_week", count, 0)
+| stats sum(this_week) as this_week, sum(last_week) as last_week by publishers
+| eval trend = case(this_week > last_week, "▲ up", this_week < last_week, "▼ down", true(), "— flat")
+| sort -this_week
+| head 20
+| table publishers, this_week, last_week, trend
+| rename publishers as Vendor, this_week as "This Week", last_week as "Last Week", trend as Trend
+          ]]></query>
+          <earliest>-14d@d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">20</option>
+        <option name="drilldown">none</option>
+        <option name="rowNumbers">true</option>
+        <option name="wrap">false</option>
+        <format type="color" field="Trend">
+          <colorPalette type="map">{"▲ up": #DC4E41, "▼ down": #53A051, "— flat": #F8BE34}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+
+  <!-- =========================================================== -->
+  <!-- ROW 4 — Recent activity + IOC watchlist                     -->
+  <!-- =========================================================== -->
+  <row>
+    <panel>
+      <title>Last 24h Reports</title>
+      <table>
+        <search>
+          <query><![CDATA[
+index=threat_intel sourcetype=threat_watch
+| dedup _time sortby -_time
+| head 1
+| spath output=reports path=last_24h.reports{}
+| mvexpand reports
+| spath input=reports output=report_id    path=id
+| spath input=reports output=report_name  path=name
+| spath input=reports output=report_url   path=url
+| spath input=reports output=labels       path=labels{}
+| spath input=reports output=description  path=description
+| eval labels = mvjoin(labels, ", ")
+| eval report_link = "<a href=\"" . report_url . "\" target=\"_blank\">" . report_name . "</a>"
+| table report_link, labels, description
+| rename report_link as Report, labels as Labels, description as Description
+          ]]></query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">15</option>
+        <option name="drilldown">none</option>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">true</option>
+      </table>
+    </panel>
+
+    <panel>
+      <title>IOC Watchlist</title>
+      <table>
+        <search>
+          <query>
+| inputlookup threat_intel_iocs_lookup
+| eval first_seen_epoch = strptime(first_seen, "%Y-%m-%dT%H:%M:%SZ")
+| sort -first_seen_epoch
+| table ioc, ioc_type, source_report, source_url, labels, confidence, first_seen, last_seen
+| rename ioc as IOC, ioc_type as Type, source_report as "Source Report", source_url as "Source URL", labels as Labels, confidence as Confidence, first_seen as "First Seen", last_seen as "Last Seen"
+          </query>
+          <earliest>$time_tok.earliest$</earliest>
+          <latest>$time_tok.latest$</latest>
+        </search>
+        <option name="count">15</option>
+        <option name="drilldown">none</option>
+        <option name="rowNumbers">true</option>
+        <option name="wrap">false</option>
+        <format type="color" field="Type">
+          <colorPalette type="map">{"ip": #DC4E41, "domain": #F1813F, "hash": #F8BE34, "cve": #1E90FF}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+
+</dashboard>

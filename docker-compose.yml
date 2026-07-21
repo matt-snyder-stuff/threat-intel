@@ -1,0 +1,64 @@
+services:
+
+  # ── RSS source (no credentials needed) ─────────────────────────────────────
+  rss:
+    build: .
+    profiles: [rss]
+    command: ["--source", "rss", "--build"]
+    volumes:
+      - ./data:/data
+    environment:
+      RSS_FEEDS: ${RSS_FEEDS:-}
+      CUTOFF_DAYS: ${CUTOFF_DAYS:-30}
+
+  # ── OpenCTI source ──────────────────────────────────────────────────────────
+  opencti:
+    build: .
+    profiles: [opencti]
+    command: ["--source", "opencti", "--build"]
+    volumes:
+      - ./data:/data
+    environment:
+      OPENCTI_URL: ${OPENCTI_URL}
+      OPENCTI_TOKEN: ${OPENCTI_TOKEN}
+      CUTOFF_DAYS: ${CUTOFF_DAYS:-30}
+
+  # ── Slack source ────────────────────────────────────────────────────────────
+  slack:
+    build: .
+    profiles: [slack]
+    command: ["--source", "slack", "--build"]
+    volumes:
+      - ./data:/data
+    environment:
+      SLACK_TOKEN: ${SLACK_TOKEN}
+      SLACK_CHANNEL_ID: ${SLACK_CHANNEL_ID}
+      SLACK_LOOKBACK_DAYS: ${SLACK_LOOKBACK_DAYS:-30}
+
+  # ── Splunk source ───────────────────────────────────────────────────────────
+  splunk:
+    build: .
+    profiles: [splunk]
+    command: ["--source", "splunk", "--build"]
+    volumes:
+      - ./data:/data
+    environment:
+      SPLUNK_URL: ${SPLUNK_URL}
+      SPLUNK_TOKEN: ${SPLUNK_TOKEN:-}
+      SPLUNK_USERNAME: ${SPLUNK_USERNAME:-}
+      SPLUNK_PASSWORD: ${SPLUNK_PASSWORD:-}
+      SPLUNK_SEARCH: ${SPLUNK_SEARCH:-}
+      SPLUNK_EARLIEST: ${SPLUNK_EARLIEST:--30d@d}
+      SPLUNK_VERIFY_SSL: ${SPLUNK_VERIFY_SSL:-true}
+      CUTOFF_DAYS: ${CUTOFF_DAYS:-30}
+
+  # ── Static file server — serve threat-watch.html + threat-watch-data.json ──
+  # docker compose --profile serve up
+  serve:
+    image: nginx:alpine
+    profiles: [serve]
+    ports:
+      - "${SERVE_PORT:-8080}:80"
+    volumes:
+      - ./data:/usr/share/nginx/html:ro
+    restart: unless-stopped
