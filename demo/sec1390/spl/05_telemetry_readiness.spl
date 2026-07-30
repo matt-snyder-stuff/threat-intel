@@ -1,0 +1,4 @@
+| inputlookup telemetry_readiness.csv
+| eval status=case(readiness="ready","OK",readiness="missing","GAP",true(),"CHECK")
+| table status detection data_source sourcetype required_fields events_seen confidence_impact analyst_note
+| sort status detection

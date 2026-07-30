@@ -1,0 +1,9 @@
+index=demo_threat (sourcetype=demo:network OR sourcetype=demo:endpoint)
+| lookup threat_iocs.csv value as ioc OUTPUT source as intel_source actor type as ioc_type confidence
+| lookup ot_assets.csv dest_ip OUTPUT asset_type owner zone
+| eval plc_port=if(dest_port IN (44818,2222,502,22),1,0)
+| where demo_case="CyberAv3ngers" OR plc_port=1 OR asset_type="PLC"
+| fillnull value="-" src_ip dest_ip host asset_type owner zone intel_source actor
+| stats count max(plc_port) as plc_port values(dest_port) as dest_ports values(ioc_type) as ioc_types values(process_name) as processes by src_ip dest_ip host asset_type owner zone intel_source actor
+| eval risk_score=case(intel_source!="-",90, asset_type="PLC" AND plc_port=1,70, asset_type="PLC",40, true(),30)
+| sort -risk_score

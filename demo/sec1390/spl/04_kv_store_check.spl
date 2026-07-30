@@ -1,0 +1,3 @@
+| inputlookup threat_iocs.csv
+| stats count by source actor type
+| sort source type

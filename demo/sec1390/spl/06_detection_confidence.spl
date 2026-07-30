@@ -1,0 +1,7 @@
+| inputlookup telemetry_readiness.csv
+| eval search_outcome=if(events_seen>0,"evidence available","zero hits are inconclusive")
+| eval confidence_score=case(readiness="ready" AND match(detection,"TeamPCP"),88,readiness="ready",82,true(),35)
+| eval confidence_band=case(confidence_score>=85,"high",confidence_score>=60,"medium",true(),"low")
+| eval review_decision=case(readiness="missing","do not close; fix telemetry",confidence_score>=85,"promote to notable draft",true(),"analyst review")
+| table detection search_outcome readiness events_seen confidence_score confidence_band analyst_note review_decision
+| sort -confidence_score

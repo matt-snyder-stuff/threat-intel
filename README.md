@@ -85,6 +85,28 @@ Use `python3 run.py --help` to see all options and env vars for each source.
 
 ---
 
+## SEC1390 .conf Demo
+
+The `.conf26` talk **The AI Detection Engineer** uses a replayable Splunk demo in [`demo/sec1390`](demo/sec1390).
+
+The two files referenced in the slides are:
+
+- [`demo/sec1390/run_agent_demo.py`](demo/sec1390/run_agent_demo.py)
+- [`demo/sec1390/seed_splunk_demo.sh`](demo/sec1390/seed_splunk_demo.sh)
+
+Quick replay:
+
+```bash
+cd demo/sec1390
+python3 -m pip install -r requirements.txt
+python3 run_agent_demo.py
+./seed_splunk_demo.sh
+```
+
+The demo parses CyberAv3ngers/Iran PLC activity and TeamPCP CI/CD supply-chain intel, generates SPL, loads lookup artifacts, validates telemetry readiness, and scores detection confidence in Splunk.
+
+---
+
 ## Sources
 
 All four sources write the same pickle schema. `build.py` never knows which one ran.

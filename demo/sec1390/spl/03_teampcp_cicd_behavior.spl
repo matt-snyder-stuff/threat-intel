@@ -1,0 +1,10 @@
+index=demo_threat (sourcetype=demo:cicd OR sourcetype=demo:dns OR sourcetype=demo:proxy OR sourcetype=demo:endpoint)
+| lookup threat_iocs.csv value as ioc OUTPUT source as intel_source actor type as ioc_type confidence
+| lookup cicd_assets.csv host OUTPUT team asset_role
+| eval secret_touch=if(isnotnull(secret_accessed) OR like(_raw,"%AWS_ACCESS_KEY_ID%"),1,0)
+| eval package_activity=if(isnotnull(package) OR like(url,"%checkmarx-util%"),1,0)
+| where demo_case="TeamPCP" OR secret_touch=1 OR package_activity=1
+| fillnull value="-" host team asset_role intel_source actor
+| stats count max(secret_touch) as secret_touch max(package_activity) as package_activity values(ioc_type) as ioc_types values(query) as dns values(url) as urls values(package) as packages values(secret_accessed) as secrets values(repo_created) as repo_created by host team asset_role intel_source actor
+| eval risk_score=case(intel_source!="-" AND secret_touch=1,95, intel_source!="-" AND package_activity=1,85, true(),50)
+| sort -risk_score

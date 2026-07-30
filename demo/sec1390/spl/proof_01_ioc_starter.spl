@@ -1,0 +1,5 @@
+| inputlookup demo_events.csv
+| lookup threat_iocs.csv value as ioc OUTPUT source as intel_source actor type confidence
+| where isnotnull(intel_source)
+| stats count values(sourcetype) as sourcetypes values(type) as ioc_types values(confidence) as confidence by demo_case actor intel_source ioc
+| sort -count
