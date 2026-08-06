@@ -76,7 +76,7 @@ source .env
 
 | Command | What it does |
 |---------|-------------|
-| `/rebuild [source]` | Fetch from a source and regenerate the dashboard (`splunk` \| `opencti` \| `slack` \| `rss`). |
+| `/rebuild [source]` | Fetch from a source and regenerate the dashboard (`splunk` \| `opencti` \| `slack` \| `rss` \| `stix`). |
 | `/splunk-ingest [spl]` | Pull threat intel from Splunk via REST API. Optionally pass a custom SPL query. |
 | `/peak-hunt [type] [focus]` | Full-lifecycle PEAK hunt — plan, execute, detect, report. Type: `hypothesis` \| `baseline` \| `math`. |
 | `/hunt [focus]` | Quick offline hunt: generate SPL + KQL + Sigma queries from the current dataset. |
@@ -117,7 +117,8 @@ sources/
 ├── splunk.py                 # Splunk REST API source (job submit → poll → results)
 ├── opencti.py                # OpenCTI GraphQL source
 ├── slack.py                  # Slack channel source
-└── rss.py                    # RSS/Atom feed source
+├── rss.py                    # RSS/Atom feed source
+└── stix.py                   # STIX 2.x / TAXII 2.x source (zero extra dependencies)
 generator/
 ├── build.py                  # aggregation + scoring → HTML + JSON (do not modify)
 ├── fetch_and_process.py      # legacy wrapper → sources/opencti

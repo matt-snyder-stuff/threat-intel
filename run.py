@@ -40,6 +40,17 @@ SOURCES = {
         ],
         "description": "Run a Splunk search via the REST API and use results as threat intel items.",
     },
+    "stix": {
+        "required": [],
+        "optional": [
+            "TAXII_URL", "TAXII_USERNAME", "TAXII_PASSWORD", "TAXII_TOKEN",
+            "TAXII_COLLECTION", "TAXII_API_ROOT",
+            "STIX_FILE", "STIX_URL",
+            "STIX_VERIFY_SSL", "STIX_LIMIT",
+            "CUTOFF_DAYS", "PKL_OUT", "PUB_SIDECAR",
+        ],
+        "description": "Ingest STIX 2.x objects from a TAXII 2.x server, a local bundle file, or a bundle URL.",
+    },
 }
 
 
@@ -69,6 +80,7 @@ def build_parser():
     epilog_parts.append("  python3 run.py --source opencti")
     epilog_parts.append("  python3 run.py --source rss --build")
     epilog_parts.append("  python3 run.py --source slack")
+    epilog_parts.append("  python3 run.py --source stix   # TAXII_URL or STIX_FILE or STIX_URL")
 
     parser = argparse.ArgumentParser(
         prog="run.py",
@@ -80,7 +92,7 @@ def build_parser():
         "--source", "-s",
         required=True,
         choices=list(SOURCES.keys()),
-        help="Data source to fetch from (opencti | slack | rss | splunk)",
+        help="Data source to fetch from (opencti | slack | rss | splunk | stix)",
     )
     parser.add_argument(
         "--build", "-b",
@@ -129,6 +141,8 @@ def main():
         from sources.rss import run
     elif source_name == "splunk":
         from sources.splunk import run
+    elif source_name == "stix":
+        from sources.stix import run
     else:
         print(f"Error: unknown source '{source_name}'", file=sys.stderr)
         sys.exit(1)

@@ -79,6 +79,19 @@ python3 run.py --source opencti --build
 export SLACK_TOKEN=xoxb-your-bot-token
 export SLACK_CHANNEL_ID=C0123456789
 python3 run.py --source slack --build
+
+# Option E — TAXII 2.x server (e.g. AlienVault OTX, MISP, CISA AIS)
+export TAXII_URL=https://otx.alienvault.com/taxii/
+export TAXII_TOKEN=your-otx-api-key
+python3 run.py --source stix --build
+
+# Option F — Raw STIX bundle URL (no TAXII wrapper, e.g. MITRE ATT&CK)
+export STIX_URL=https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json
+python3 run.py --source stix --build
+
+# Option G — Local STIX bundle file
+export STIX_FILE=/path/to/bundle.json
+python3 run.py --source stix --build
 ```
 
 Use `python3 run.py --help` to see all options and env vars for each source.
@@ -117,6 +130,7 @@ All four sources write the same pickle schema. `build.py` never knows which one 
 | `opencti` | Pages through your OpenCTI instance's GraphQL API for reports labeled `cloud` or `ai`. Fetches confidence scores, SDO-linked threat actors, and a published-dates sidecar for accurate WoW math. | `OPENCTI_URL`, `OPENCTI_TOKEN` |
 | `slack` | Reads messages from a Slack channel via `conversations.history`. Treats each message as a report — URLs become the article link, auto-detects cloud/AI labels from text. | `SLACK_TOKEN`, `SLACK_CHANNEL_ID` |
 | `rss` | Fetches and parses RSS and Atom feeds directly using stdlib `urllib` + `xml.etree`. No OpenCTI, no Slack, no extra installs. | none — `RSS_FEEDS` is optional (defaults to 40+ curated feeds in `sources/feeds.py`) |
+| `stix` | Ingests STIX 2.x Report, Indicator, Threat Actor, Attack Pattern, Campaign, Malware, and Vulnerability objects. Supports TAXII 2.0/2.1 servers (auto-discovers API root and collections), raw STIX bundle URLs, and local bundle files. Zero extra dependencies (pure stdlib). | at least one of: `TAXII_URL`, `STIX_URL`, or `STIX_FILE` |
 
 Optional env vars shared across sources:
 
@@ -279,7 +293,8 @@ sources/
 ├── splunk.py                  # Splunk REST API source (job submit → poll → results)
 ├── opencti.py                 # OpenCTI GraphQL source
 ├── slack.py                   # Slack channel source
-└── rss.py                     # RSS/Atom source
+├── rss.py                     # RSS/Atom source
+└── stix.py                    # STIX 2.x / TAXII 2.x source (zero extra dependencies)
 generator/
 ├── build.py                   # aggregation + scoring → HTML + JSON  ← do not modify
 ├── fetch_and_process.py       # legacy wrapper (backwards compat)
@@ -311,7 +326,7 @@ CLAUDE.md                      # project guide for Claude Code
 
 PRs welcome. The highest-value additions are:
 
-- **New sources** — VirusTotal, MISP, TAXII/STIX, email ingest
+- **New sources** — VirusTotal, MISP, email ingest
 - **New threat actors** in `KNOWN_ACTORS` (`sources/base.py`)
 - **New publisher mappings** in `PUBLISHER_MAP` (`sources/base.py`)
 - **New vendor names** in `VENDORS_TIER1` / `VENDORS_TIER2` (`sources/base.py`)
