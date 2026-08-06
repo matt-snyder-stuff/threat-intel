@@ -52,6 +52,26 @@ services:
       SPLUNK_VERIFY_SSL: ${SPLUNK_VERIFY_SSL:-true}
       CUTOFF_DAYS: ${CUTOFF_DAYS:-30}
 
+  # ── STIX/TAXII source ───────────────────────────────────────────────────────
+  stix:
+    build: .
+    profiles: [stix]
+    command: ["--source", "stix", "--build"]
+    volumes:
+      - ./data:/data
+    environment:
+      TAXII_URL: ${TAXII_URL:-}
+      TAXII_TOKEN: ${TAXII_TOKEN:-}
+      TAXII_USERNAME: ${TAXII_USERNAME:-}
+      TAXII_PASSWORD: ${TAXII_PASSWORD:-}
+      TAXII_COLLECTION: ${TAXII_COLLECTION:-}
+      TAXII_API_ROOT: ${TAXII_API_ROOT:-}
+      STIX_URL: ${STIX_URL:-}
+      STIX_FILE: ${STIX_FILE:-}
+      STIX_VERIFY_SSL: ${STIX_VERIFY_SSL:-true}
+      STIX_LIMIT: ${STIX_LIMIT:-500}
+      CUTOFF_DAYS: ${CUTOFF_DAYS:-30}
+
   # ── Static file server — serve threat-watch.html + threat-watch-data.json ──
   # docker compose --profile serve up
   serve:

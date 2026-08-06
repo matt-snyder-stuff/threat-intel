@@ -112,8 +112,8 @@ variable "pipeline_source" {
   default     = "rss"
 
   validation {
-    condition     = contains(["rss", "opencti", "slack", "splunk"], var.pipeline_source)
-    error_message = "pipeline_source must be one of: rss, opencti, slack, splunk."
+    condition     = contains(["rss", "opencti", "slack", "splunk", "stix"], var.pipeline_source)
+    error_message = "pipeline_source must be one of: rss, opencti, slack, splunk, stix."
   }
 }
 

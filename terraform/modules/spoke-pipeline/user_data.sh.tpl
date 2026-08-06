@@ -32,6 +32,7 @@ PUB_SIDECAR=/tmp/tw-30d-published.json
 HTML_OUT=/tmp/threat-watch.html
 JSON_OUT=/tmp/threat-watch-data.json
 EOF
+chmod 600 /etc/threat-intel.env
 
 # ── Write the run script invoked by EventBridge ───────────────────────────────
 cat > /usr/local/bin/run-pipeline.sh <<'SCRIPT'

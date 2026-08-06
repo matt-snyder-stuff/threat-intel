@@ -16,41 +16,42 @@ Demo project for the talk **"Building AI Agents for Threat Intel"**.
 6. **Generates** hunt queries (Splunk SPL, KQL, Sigma) from the top signals
 7. **Enriches** extracted IOCs via public no-auth APIs
 
-Zero pip dependencies. Python 3.9+. Runs locally or on a schedule via Claude Code's `CronCreate`.
+Zero pip dependencies for the core pipeline. Python 3.9+. Runs locally or on a schedule via Claude Code's `CronCreate`.
+(The `demo/sec1390` sub-project requires `pdfplumber` — see its own `requirements.txt`.)
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐
-│  OpenCTI source  │  │   Slack source   │  │      RSS source      │
-│  GraphQL API     │  │  channel history │  │  any RSS/Atom feed   │
-│  (full fidelity) │  │  (no OpenCTI)    │  │  (no dependencies)   │
-└────────┬─────────┘  └────────┬─────────┘  └──────────┬───────────┘
-         │                     │                        │
-         └─────────────────────┴────────────────────────┘
-                               │
-                         sources/base.py
+┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐
+│ OpenCTI  │  │  Slack   │  │   RSS    │  │  Splunk  │  │   STIX / TAXII   │
+│ GraphQL  │  │ channel  │  │  feeds   │  │ REST API │  │ TAXII 2.x server │
+│   API    │  │ history  │  │ (stdlib) │  │          │  │ bundle URL/file  │
+└────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────────┬─────────┘
+     │              │              │              │                 │
+     └──────────────┴──────────────┴──────────────┴─────────────────┘
+                                   │
+                             sources/base.py
                    (shared: actors · publishers ·
                     vendors · labels · save helpers)
-                               │
-                               ▼
+                                   │
+                                   ▼
               tw-30d-processed.pkl  +  tw-30d-published.json
-                               │
-                               ▼
-                      generator/build.py
-                (scoring · clustering · aggregation)
-                               │
-              ┌────────────────┴────────────────┐
-              ▼                                 ▼
-      threat-watch.html               threat-watch-data.json
-    (CEO / CISO / Analyst views)     (canonical dataset for agents)
-              │                                 │
-    ┌─────────┴──────────────────────────────────┤
-    ▼                          ▼                 ▼
-digest agent            threat-hunter      ioc-enricher
-(daily Slack post)      (SPL/KQL/Sigma)    (ipapi · crt.sh · NVD)
+                                   │
+                                   ▼
+                          generator/build.py
+                    (scoring · clustering · aggregation)
+                                   │
+              ┌────────────────────┴────────────────────┐
+              ▼                                         ▼
+      threat-watch.html                     threat-watch-data.json
+    (CEO / CISO / Analyst views)           (canonical dataset for agents)
+              │                                         │
+    ┌─────────┴──────────────────────────────────────────┤
+    ▼                          ▼                         ▼
+digest agent            threat-hunter               ioc-enricher
+(daily Slack post)      (SPL/KQL/Sigma)             (ipapi · crt.sh · NVD)
 ```
 
 ---
@@ -122,7 +123,7 @@ The demo parses CyberAv3ngers/Iran PLC activity and TeamPCP CI/CD supply-chain i
 
 ## Sources
 
-All four sources write the same pickle schema. `build.py` never knows which one ran.
+All five sources write the same pickle schema. `build.py` never knows which one ran.
 
 | Source | How it works | Required env vars |
 |--------|-------------|-------------------|
@@ -188,7 +189,7 @@ The standalone [`agent/digest-agent.md`](agent/digest-agent.md) works without Cl
 | Command | What it does |
 |---------|-------------|
 | `/peak-hunt [type] [focus]` | Full PEAK lifecycle hunt — plan, execute, detect, report, index. Type: `hypothesis` \| `baseline` \| `math` |
-| `/rebuild [source]` | Fetch from a source and regenerate the dashboard (`opencti` \| `splunk` \| `slack` \| `rss`) |
+| `/rebuild [source]` | Fetch from a source and regenerate the dashboard (`opencti` \| `splunk` \| `slack` \| `rss` \| `stix`) |
 | `/splunk-ingest [spl]` | Pull threat intel from Splunk via the REST API — optionally pass a custom SPL query |
 | `/hunt [focus]` | Quick offline hunt: generate SPL + KQL + Sigma queries from the current dataset |
 | `/hunt-live [focus]` | Generate and execute SPL queries live against Splunk; returns actual findings |
@@ -285,9 +286,9 @@ Each item needs:
 ## Repo structure
 
 ```
-run.py                         # CLI: --source {splunk,opencti,slack,rss} [--build]
+run.py                         # CLI: --source {splunk,opencti,slack,rss,stix} [--build]
 environment.md                 # YOUR DEPLOYMENT — update Splunk indexes, sourcetypes, fields
-prior-hunts/                   # auto-written hunt index — one YAML per /peak-hunt run
+prior-hunts/                   # auto-written hunt index — one JSON per /peak-hunt run
 sources/
 ├── base.py                    # shared: actors, publishers, vendors, label detection
 ├── splunk.py                  # Splunk REST API source (job submit → poll → results)
@@ -296,9 +297,7 @@ sources/
 ├── rss.py                     # RSS/Atom source
 └── stix.py                    # STIX 2.x / TAXII 2.x source (zero extra dependencies)
 generator/
-├── build.py                   # aggregation + scoring → HTML + JSON  ← do not modify
-├── fetch_and_process.py       # legacy wrapper (backwards compat)
-└── fetch_published.py         # legacy wrapper (backwards compat)
+└── build.py                   # aggregation + scoring → HTML + JSON  ← do not modify
 agent/
 └── digest-agent.md            # standalone agent (no Claude Code needed)
 .claude/

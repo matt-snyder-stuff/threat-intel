@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generate Threat Watch site and JSON data export from processed pipeline data."""
-import json, os, re, pickle, html
+import json, os, re, pickle, html, sys
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict, Counter
 
@@ -11,11 +11,16 @@ RAW_IN  = os.environ.get("RAW_IN",  os.environ.get("RAW_OUT",  "/tmp/tw-30d.json
 PUB_IN  = os.environ.get("PUB_IN",  os.environ.get("PUB_SIDECAR", "/tmp/tw-30d-published.json"))
 
 # Output paths — override to serve files from a web root or object storage mount.
-HTML_OUT = os.environ.get("HTML_OUT", "/tmp/threat-watch-mockup.html")
+HTML_OUT = os.environ.get("HTML_OUT", "/tmp/threat-watch.html")
 JSON_OUT = os.environ.get("JSON_OUT", "/tmp/threat-watch-data.json")
 
 def esc(s):
     return html.escape(s or "")
+
+if not os.path.exists(PKL_IN):
+    print(f"Error: pipeline data not found at {PKL_IN}", file=sys.stderr)
+    print(f"Run a source first, e.g.:  python3 run.py --source rss --build", file=sys.stderr)
+    sys.exit(1)
 
 with open(PKL_IN, "rb") as f:
     state = pickle.load(f)
@@ -24,21 +29,24 @@ cutoff_dt = state["cutoff"]
 now = datetime.now(timezone.utc)
 window_days = (now - cutoff_dt).days
 
-# Re-load raw JSON to enrich items with description text for popovers
+# For OpenCTI runs, enrich item descriptions from the raw GraphQL dump.
+# For all other sources, items already carry their descriptions — do NOT
+# overwrite them with empty strings when RAW_IN is absent.
 try:
     with open(RAW_IN) as f:
         raw = json.load(f)
+    id_to_desc = {}
+    for e in raw.get("data", {}).get("reports", {}).get("edges", []) or []:
+        n = e["node"]
+        desc = n.get("description") or ""
+        if desc:
+            id_to_desc[n["id"]] = re.sub(r"<[^>]+>", " ", desc).strip()
+    # Only overwrite if we actually found a description in the OpenCTI dump
+    for i in items:
+        if i["id"] in id_to_desc:
+            i["description"] = id_to_desc[i["id"]]
 except FileNotFoundError:
-    raw = {}
-id_to_desc = {}
-for e in raw.get("data", {}).get("reports", {}).get("edges", []) or []:
-    n = e["node"]
-    desc = n.get("description") or ""
-    if desc:
-        id_to_desc[n["id"]] = re.sub(r"<[^>]+>", " ", desc).strip()
-# Inject into items
-for i in items:
-    i["description"] = id_to_desc.get(i["id"], "")
+    pass  # Non-OpenCTI sources don't produce RAW_IN — descriptions already in items
 
 # Override OpenCTI ingest timestamp with the report's actual publication date when
 # available, so WoW math reflects when news broke instead of when our pipeline
@@ -231,17 +239,6 @@ def talking_points(item, containment_narrative_map):
         points.append("Customer ask: confirm whether their threat model accounts for this TTP.")
 
     return points[:4]
-
-# Add your organization's critical vendors here.
-# Tier 1 — crown-jewel SaaS and cloud platforms you care most about.
-# Tier 2 — secondary tooling and infrastructure you want to monitor.
-# Examples shown below; replace with your own stack.
-VENDORS_TIER1 = [
-    # "Okta", "GitHub", "AWS", "Splunk",
-]
-VENDORS_TIER2 = [
-    # "Jira", "Confluence", "Docker", "Kubernetes",
-]
 
 # ---- Aggregations ----
 n_total = len(items)

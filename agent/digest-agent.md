@@ -1,7 +1,7 @@
 ---
 name: threat-intel-digest
 description: Posts a daily digest of the last 24 hours of cloud- and AI-focused threat intel reports from OpenCTI to a Slack channel. Queries OpenCTI's GraphQL API for reports labeled `cloud` or `ai`, groups by source, and posts a formatted Slack message.
-model: claude-sonnet-4-6
+model: sonnet
 tools:
   - Bash
   - mcp__slack-bot__post_message

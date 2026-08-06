@@ -138,11 +138,11 @@ PEAK targets HMM3 minimum. HMM4 requires systematic detection conversion — not
 
 ### 0a. Read the prior-hunts index
 
-Before loading the dataset, read all YAML files in the `prior-hunts/` directory
+Before loading the dataset, read all JSON files in the `prior-hunts/` directory
 (relative to the repo root where this agent runs).
 
 ```python
-import os, yaml, glob
+import os, json, glob
 
 PRIOR_HUNTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'prior-hunts')
 # Fall back to looking relative to CWD
@@ -150,10 +150,10 @@ if not os.path.isdir(PRIOR_HUNTS_DIR):
     PRIOR_HUNTS_DIR = 'prior-hunts'
 
 prior_hunts = []
-for path in sorted(glob.glob(os.path.join(PRIOR_HUNTS_DIR, 'HUNT-*.yaml'))):
+for path in sorted(glob.glob(os.path.join(PRIOR_HUNTS_DIR, 'HUNT-*.json'))):
     try:
         with open(path) as f:
-            prior_hunts.append(yaml.safe_load(f))
+            prior_hunts.append(json.load(f))
     except Exception as e:
         print(f"[PRIOR HUNTS] Could not read {path}: {e}")
 
@@ -1068,18 +1068,18 @@ Write `/tmp/peak-hunt-report-<YYYY-MM-DD>.md`:
 
 ### 5a. Write the prior-hunts index entry
 
-For formal hunts (H-type), write a YAML file to `prior-hunts/` in the repo root.
+For formal hunts (H-type), write a JSON file to `prior-hunts/` in the repo root.
 Skip this step for investigations (I-type).
 
 ```python
-import os, yaml
+import os, json
 from datetime import datetime
 
 hunt_date = datetime.now().strftime("%Y-%m-%d")
 # Build a slug from focus or technique
 slug = (os.environ.get('PEAK_FOCUS','hunt') or 'hunt').lower()
 slug = re.sub(r'[^a-z0-9]+', '-', slug).strip('-')[:40]
-filename = f"HUNT-{hunt_date.replace('-','')}-{slug}.yaml"
+filename = f"HUNT-{hunt_date.replace('-','')}-{slug}.json"
 
 entry = {
     "hunt_id": f"HUNT-{hunt_date.replace('-','')}-{slug}",
@@ -1093,7 +1093,7 @@ entry = {
             "behavior": h.get("behavior"),
             "location": h.get("location"),
             "evidence_field": h.get("evidence_field"),
-            "outcome": h.get("outcome"),          # confirmed | negative_data_present | inconclusive_data_absent | investigate
+            "outcome": h.get("outcome"),
             "data_sources_present": h.get("data_sources_present", True),
         }
         for h in log.get("hypotheses", [])
@@ -1124,7 +1124,7 @@ prior_hunts_dir = "prior-hunts"
 os.makedirs(prior_hunts_dir, exist_ok=True)
 out_path = os.path.join(prior_hunts_dir, filename)
 with open(out_path, 'w') as f:
-    yaml.dump(entry, f, default_flow_style=False, sort_keys=False)
+    json.dump(entry, f, indent=2)
 
 print(f"[PRIOR HUNTS] Written: {out_path}")
 ```

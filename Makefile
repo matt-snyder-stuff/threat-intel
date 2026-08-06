@@ -1,4 +1,5 @@
-.PHONY: help run-rss run-opencti run-slack run-splunk build serve clean \
+.PHONY: help run-rss run-opencti run-slack run-splunk run-stix build serve clean \
+        docker-rss docker-opencti docker-slack docker-splunk docker-stix docker-serve \
         tf-init tf-plan tf-apply tf-destroy
 
 SOURCE ?= rss
@@ -11,6 +12,7 @@ help:
 	@echo "  make run-opencti   Fetch from OpenCTI and build the dashboard"
 	@echo "  make run-slack     Fetch from Slack and build the dashboard"
 	@echo "  make run-splunk    Fetch from Splunk and build the dashboard"
+	@echo "  make run-stix      Fetch from STIX/TAXII and build the dashboard"
 	@echo "  make build         Re-run build.py without re-fetching"
 	@echo "  make serve         Serve the dashboard at http://localhost:8080"
 	@echo "  make clean         Remove generated pipeline files"
@@ -18,6 +20,7 @@ help:
 	@echo "Docker usage:"
 	@echo "  make docker-rss       docker compose --profile rss up --build"
 	@echo "  make docker-opencti   docker compose --profile opencti up --build"
+	@echo "  make docker-stix      docker compose --profile stix up --build"
 	@echo "  make docker-serve     docker compose --profile serve up"
 	@echo ""
 	@echo "Terraform (AWS + Aviatrix):"
@@ -40,6 +43,9 @@ run-slack:
 
 run-splunk:
 	@[ -f .env ] && set -a && . ./.env && set +a; python3 run.py --source splunk --build
+
+run-stix:
+	@[ -f .env ] && set -a && . ./.env && set +a; python3 run.py --source stix --build
 
 build:
 	@[ -f .env ] && set -a && . ./.env && set +a; python3 generator/build.py
@@ -65,6 +71,9 @@ docker-slack:
 
 docker-splunk:
 	docker compose --profile splunk up --build
+
+docker-stix:
+	docker compose --profile stix up --build
 
 docker-serve:
 	docker compose --profile serve up

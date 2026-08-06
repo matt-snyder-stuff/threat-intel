@@ -9,7 +9,7 @@ This is a conference demo project for **"Building AI Agents for Threat Intel"**.
 ## How the pipeline works
 
 ```
-Source (opencti | slack | rss)
+Source (opencti | slack | rss | splunk | stix)
         │
         ▼
 sources/<source>.py   →   /tmp/tw-30d-processed.pkl  +  /tmp/tw-30d-published.json
@@ -111,7 +111,7 @@ source .env
 ```
 run.py                        # top-level CLI: --source, --build
 environment.md                # YOUR DEPLOYMENT — update indexes, sourcetypes, key fields
-prior-hunts/                  # auto-written hunt index — one YAML per /peak-hunt run
+prior-hunts/                  # auto-written hunt index — one JSON per /peak-hunt run
 sources/
 ├── base.py                   # shared helpers: actors, publishers, vendors, labels
 ├── splunk.py                 # Splunk REST API source (job submit → poll → results)
@@ -120,9 +120,7 @@ sources/
 ├── rss.py                    # RSS/Atom feed source
 └── stix.py                   # STIX 2.x / TAXII 2.x source (zero extra dependencies)
 generator/
-├── build.py                  # aggregation + scoring → HTML + JSON (do not modify)
-├── fetch_and_process.py      # legacy wrapper → sources/opencti
-└── fetch_published.py        # legacy wrapper → sources/opencti
+└── build.py                  # aggregation + scoring → HTML + JSON (do not modify)
 agent/
 └── digest-agent.md           # standalone agent definition (use without Claude Code)
 .claude/
@@ -153,7 +151,7 @@ agent/
 
 Each item must have: `id`, `name`, `created` (timezone-aware UTC datetime), `confidence` (0-100), `all_labels` (list of strings like `"cloud"`, `"ai-llm"`), `publisher`, `url`, `tas` (threat actor names), `t1_vendors`, `t2_vendors`, `description`.
 
-All three sources in `sources/` write this exact schema. `build.py` is source-agnostic.
+All five sources in `sources/` write this exact schema. `build.py` is source-agnostic.
 
 ---
 

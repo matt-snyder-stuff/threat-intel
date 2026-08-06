@@ -67,7 +67,7 @@ log "Sending seed events through HEC"
 docker cp "$OUT/splunk_events.jsonl" "$CONTAINER:/tmp/splunk_events.jsonl"
 docker exec "$CONTAINER" sh -c "rm -f /tmp/hec_responses.jsonl; while IFS= read -r event; do curl -k -s '$HEC_URL' -H 'Authorization: Splunk $HEC_TOKEN' -H 'Content-Type: application/json' -d \"\$event\" >> /tmp/hec_responses.jsonl; printf '\n' >> /tmp/hec_responses.jsonl; done < /tmp/splunk_events.jsonl"
 docker cp "$CONTAINER:/tmp/hec_responses.jsonl" "$RESULTS/hec_responses.jsonl"
-if grep -v '"code":0' "$RESULTS/hec_responses.jsonl" >/dev/null; then
+if grep -qE '"code":[^0]' "$RESULTS/hec_responses.jsonl" 2>/dev/null; then
   log "HEC returned at least one error"
   cat "$RESULTS/hec_responses.jsonl"
   exit 1

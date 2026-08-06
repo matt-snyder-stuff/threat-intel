@@ -172,7 +172,7 @@ def make_seed_events(advisories: list[dict], ioc_rows: list[dict]) -> list[dict]
     def preferred(values: list[str], target: str) -> str:
         return target if target in values else values[0]
 
-    team_dns_domain = preferred(team_domains, "scan.aquasecurtiy.org")
+    team_dns_domain = preferred(team_domains, "scan.aquasecurity.org")
     team_payload_domain = preferred(team_domains, "checkmarx.zone")
 
     events = [

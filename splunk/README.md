@@ -74,11 +74,11 @@ SPLUNK_PASSWORD=changeme
 # Optional search overrides:
 SPLUNK_SEARCH="search index=threat_intel sourcetype=threat_watch | head 500"
 SPLUNK_EARLIEST=-30d
-# Field mappings (defaults shown):
-SPLUNK_FIELD_NAME=name
+# Field mappings (defaults shown — must match your Splunk data):
+SPLUNK_FIELD_NAME=title
 SPLUNK_FIELD_DESC=description
 SPLUNK_FIELD_URL=url
-SPLUNK_FIELD_PUBLISHER=publisher
+SPLUNK_FIELD_PUBLISHER=source
 SPLUNK_FIELD_TIME=_time
 ```
 

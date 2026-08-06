@@ -63,6 +63,7 @@ def _req(url, method="GET", data=None, headers=None):
     ctx = None
     if not _VERIFY:
         import ssl
+        print("Warning: SPLUNK_VERIFY_SSL=false — TLS certificate verification is disabled", file=sys.stderr)
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode    = ssl.CERT_NONE
@@ -94,7 +95,8 @@ def _run_search(base_url, spl, earliest):
     sid = resp["sid"]
     print(f"[splunk] Job SID: {sid}", file=sys.stderr)
 
-    # 2 — Poll until done
+    # 2 — Poll until done (max 4 minutes)
+    state = "UNKNOWN"
     for attempt in range(120):
         status = _req(f"{base_url}/services/search/jobs/{sid}?output_mode=json")
         state  = status["entry"][0]["content"]["dispatchState"]
@@ -106,6 +108,10 @@ def _run_search(base_url, spl, earliest):
     print(file=sys.stderr)
     if state == "FAILED":
         print("[splunk] Search job failed.", file=sys.stderr)
+        sys.exit(1)
+    if state != "DONE":
+        print(f"[splunk] Search timed out after {120 * 2}s (state={state}). "
+              "Try narrowing SPLUNK_EARLIEST or simplifying SPLUNK_SEARCH.", file=sys.stderr)
         sys.exit(1)
 
     # 3 — Fetch results (paginated)
@@ -209,11 +215,7 @@ def run():
         sys.exit(1)
 
     cutoff_days = int(os.environ.get("CUTOFF_DAYS", "30"))
-    if items:
-        earliest_item = min(items, key=lambda x: x["created"])
-        cutoff_dt = earliest_item["created"]
-    else:
-        cutoff_dt = datetime.now(timezone.utc) - timedelta(days=cutoff_days)
+    cutoff_dt = datetime.now(timezone.utc) - timedelta(days=cutoff_days)
     save_pickle(items, cutoff_dt, pkl_out)
     save_published(pub_dates, pub_out)
     print(f"[splunk] Wrote {len(items)} items → {pkl_out}", file=sys.stderr)

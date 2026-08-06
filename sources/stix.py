@@ -96,6 +96,7 @@ _TYPE_LABELS = {
 def _ssl_ctx():
     if not _VERIFY:
         import ssl
+        print("Warning: STIX_VERIFY_SSL=false — TLS certificate verification is disabled", file=sys.stderr)
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
