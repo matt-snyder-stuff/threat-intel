@@ -78,7 +78,8 @@ source .env
 |---------|-------------|
 | `/rebuild [source]` | Fetch from a source and regenerate the dashboard (`splunk` \| `opencti` \| `slack` \| `rss`). |
 | `/splunk-ingest [spl]` | Pull threat intel from Splunk via REST API. Optionally pass a custom SPL query. |
-| `/hunt [focus]` | Generate SIEM hunt queries (SPL + KQL + Sigma) from the current dataset — no live SIEM needed. |
+| `/peak-hunt [type] [focus]` | Full-lifecycle PEAK hunt — plan, execute, detect, report. Type: `hypothesis` \| `baseline` \| `math`. |
+| `/hunt [focus]` | Quick offline hunt: generate SPL + KQL + Sigma queries from the current dataset. |
 | `/hunt-live [focus]` | Generate and execute SPL queries live against Splunk; returns actual findings. |
 | `/enrich [ioc ...]` | Enrich IOCs from the dataset (or a provided list) via public APIs. |
 | `/start-digest` | Register a daily Slack digest cron job. |
@@ -89,6 +90,7 @@ source .env
 
 | Agent | When to use |
 |-------|-------------|
+| `peak-hunt` | Full PEAK lifecycle hunt: plan → execute → detect → report. Reads `environment.md` and `prior-hunts/` for context. |
 | `digest` | Posts a daily summary of the last 24h of cloud/AI reports to Slack. |
 | `threat-hunter` | Generates hunt queries (SPL, KQL, Sigma) from the top signals — no live SIEM needed. |
 | `splunk-hunter` | Executes SPL hunt queries live against Splunk via REST API; returns actual findings. |
@@ -96,10 +98,20 @@ source .env
 
 ---
 
+## Setup files (update once, used by all hunts)
+
+**`environment.md`** — Describes available Splunk indexes, sourcetypes, and key fields in your deployment. The `peak-hunt` agent reads this during PREPARE to scope hypotheses to telemetry that actually exists. Update the Status column as you verify each data source. A hypothesis pointing at an absent index is flagged Inconclusive before any query runs.
+
+**`prior-hunts/`** — One YAML file per completed `/peak-hunt` run. Written automatically at hunt closure. The `peak-hunt` agent reads all entries at the start of PREPARE to avoid re-running the same hunt and to inherit false-positive notes. Do not delete entries — they are institutional memory.
+
+---
+
 ## Repo structure
 
 ```
 run.py                        # top-level CLI: --source, --build
+environment.md                # YOUR DEPLOYMENT — update indexes, sourcetypes, key fields
+prior-hunts/                  # auto-written hunt index — one YAML per /peak-hunt run
 sources/
 ├── base.py                   # shared helpers: actors, publishers, vendors, labels
 ├── splunk.py                 # Splunk REST API source (job submit → poll → results)
@@ -114,14 +126,16 @@ agent/
 └── digest-agent.md           # standalone agent definition (use without Claude Code)
 .claude/
 ├── agents/
+│   ├── peak-hunt.md          # PEAK full-lifecycle hunt (plan + execute + detect + report)
 │   ├── digest.md             # Claude Code digest agent
 │   ├── threat-hunter.md      # offline hunt query generation (SPL + KQL + Sigma)
 │   ├── splunk-hunter.md      # live Splunk hunt — executes SPL, returns findings
 │   └── ioc-enricher.md       # public API enrichment agent
 └── commands/
+    ├── peak-hunt.md          # /peak-hunt command (full PEAK lifecycle)
     ├── rebuild.md            # /rebuild command
     ├── splunk-ingest.md      # /splunk-ingest — pull from Splunk REST API
-    ├── hunt.md               # /hunt command (offline)
+    ├── hunt.md               # /hunt command (offline, quick)
     ├── hunt-live.md          # /hunt-live — execute live against Splunk
     ├── enrich.md             # /enrich command
     └── start-digest.md       # /start-digest cron registration

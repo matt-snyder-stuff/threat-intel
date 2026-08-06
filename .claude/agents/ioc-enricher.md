@@ -1,7 +1,7 @@
 ---
 name: ioc-enricher
 description: Enriches a list of IOCs (IPs, domains, hashes, CVEs) using public no-auth APIs. Reads IOCs from the threat-watch-data.json dataset or from a provided list, queries rdap.org, crt.sh, ipapi.co, and the NVD, and outputs a markdown enrichment table. No API keys required.
-model: claude-sonnet-4-6
+model: sonnet
 tools:
   - Bash
   - Write

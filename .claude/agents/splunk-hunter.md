@@ -1,7 +1,7 @@
 ---
 name: splunk-hunter
 description: Live threat hunting agent that reads the threat-watch-data.json dataset, generates targeted SPL queries, executes them against a real Splunk instance via the REST API, interprets the results, and writes a findings report. Use when you want to hunt with actual Splunk data, not just generate queries.
-model: claude-sonnet-4-6
+model: sonnet
 tools:
   - Bash
   - Write
@@ -57,7 +57,31 @@ Extract IOCs, TTPs, and behavioral patterns from each target's description text.
 
 ## PHASE 3 — Execute Splunk searches
 
-For each hunt target, run 1–3 focused SPL queries via the Splunk REST API using the helper below. Adapt the queries to the specific IOC or behavioral pattern — do NOT run generic templates.
+**COUNT-FIRST is mandatory before pulling any field values.** Follow this 4-step sequence for every hunt query. Never skip to field-level results without first establishing result volume — running a broad scan against a large index without a count check is the primary cause of runaway query cost.
+
+```
+Step 1 — Baseline count (no field output):
+  index=<target> <filter> earliest=-7d | stats count
+  → 0: check if the data source exists; document as negative or inconclusive; STOP
+  → 1–100: proceed to Step 2
+  → 100–1000: tighten the filter (add time constraints or field values), re-run Step 1
+  → >1000: filter is too broad; add specificity, re-run Step 1
+
+Step 2 — Filtered count breakdown (still no raw event pull):
+  index=<target> <filter> earliest=-7d | stats count by <key_field> | sort -count | head 20
+  Identify the specific subset worth investigating.
+
+Step 3 — Pull summarized results (only after Step 1 count < 100):
+  index=<target> <filter> earliest=-7d
+  | stats count by host, user, dest_ip | sort -count | head 50
+  Do NOT pull raw events unless the summary doesn't give enough context.
+
+Step 4 — Evaluate and document:
+  Classify the result: Confirmed suspicious | Investigate further | False positive
+  Log the decision before running any follow-up query.
+```
+
+For each hunt target, run 1–3 focused SPL query sequences via the Splunk REST API using the helper below. Adapt the queries to the specific IOC or behavioral pattern — do NOT run generic templates without the COUNT-FIRST step.
 
 ```python
 #!/usr/bin/env python3

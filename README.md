@@ -161,9 +161,10 @@ Drop these into your `.claude/agents/` directory to use them with [Claude Code](
 
 | Agent | What it does |
 |-------|-------------|
+| [`peak-hunt`](.claude/agents/peak-hunt.md) | Full-lifecycle PEAK hunt: reads `environment.md` + `prior-hunts/`, writes ABLE hypotheses, executes COUNT-FIRST queries, generates Sigma rules + SPL correlation searches, writes closure report and prior-hunts index entry |
 | [`digest`](.claude/agents/digest.md) | Reads `threat-watch-data.json`, formats the last 24h of cloud/AI reports, posts to Slack |
 | [`threat-hunter`](.claude/agents/threat-hunter.md) | Extracts the top 3 hunt-worthy signals and generates queries in Splunk SPL, KQL (Sentinel/Defender), and Sigma YAML — no live SIEM needed |
-| [`splunk-hunter`](.claude/agents/splunk-hunter.md) | Like `threat-hunter` but executes the SPL live against Splunk via the REST API and reports actual findings |
+| [`splunk-hunter`](.claude/agents/splunk-hunter.md) | Like `threat-hunter` but executes the SPL live against Splunk via the REST API and reports actual findings (COUNT-FIRST enforced) |
 | [`ioc-enricher`](.claude/agents/ioc-enricher.md) | Enriches IPs, domains, and CVEs via ipapi.co, crt.sh, rdap.org, and the NVD — no API keys required |
 
 The standalone [`agent/digest-agent.md`](agent/digest-agent.md) works without Claude Code — it queries OpenCTI directly and can be wired to any Claude agent runtime.
@@ -172,9 +173,10 @@ The standalone [`agent/digest-agent.md`](agent/digest-agent.md) works without Cl
 
 | Command | What it does |
 |---------|-------------|
+| `/peak-hunt [type] [focus]` | Full PEAK lifecycle hunt — plan, execute, detect, report, index. Type: `hypothesis` \| `baseline` \| `math` |
 | `/rebuild [source]` | Fetch from a source and regenerate the dashboard (`opencti` \| `splunk` \| `slack` \| `rss`) |
 | `/splunk-ingest [spl]` | Pull threat intel from Splunk via the REST API — optionally pass a custom SPL query |
-| `/hunt [focus]` | Generate hunt queries (SPL + KQL + Sigma) without live SIEM access |
+| `/hunt [focus]` | Quick offline hunt: generate SPL + KQL + Sigma queries from the current dataset |
 | `/hunt-live [focus]` | Generate and execute SPL queries live against Splunk; returns actual findings |
 | `/enrich [iocs]` | Enrich extracted or provided IOCs via public APIs |
 | `/start-digest` | Register a daily Slack digest via Claude Code's `CronCreate` |
@@ -270,6 +272,8 @@ Each item needs:
 
 ```
 run.py                         # CLI: --source {splunk,opencti,slack,rss} [--build]
+environment.md                 # YOUR DEPLOYMENT — update Splunk indexes, sourcetypes, fields
+prior-hunts/                   # auto-written hunt index — one YAML per /peak-hunt run
 sources/
 ├── base.py                    # shared: actors, publishers, vendors, label detection
 ├── splunk.py                  # Splunk REST API source (job submit → poll → results)
@@ -284,11 +288,13 @@ agent/
 └── digest-agent.md            # standalone agent (no Claude Code needed)
 .claude/
 ├── agents/                    # Claude Code agent definitions
+│   ├── peak-hunt.md           # PEAK full-lifecycle hunt (plan + execute + detect + report)
 │   ├── digest.md
 │   ├── threat-hunter.md       # offline: generates SPL + KQL + Sigma
-│   ├── splunk-hunter.md       # live: executes SPL, returns findings
+│   ├── splunk-hunter.md       # live: executes SPL, returns findings (COUNT-FIRST)
 │   └── ioc-enricher.md
 └── commands/                  # Claude Code slash commands
+    ├── peak-hunt.md           # /peak-hunt — full PEAK lifecycle
     ├── rebuild.md
     ├── splunk-ingest.md       # pull threat intel from Splunk
     ├── hunt.md

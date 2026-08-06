@@ -37,6 +37,10 @@ SPLUNK_VERIFY_SSL=...       # false for self-signed certs
 
 If `SPLUNK_URL` is not set, run in **offline mode**: generate full query artifacts but skip live execution. Note offline mode clearly in every output file.
 
+**Prior hunts index:** `/prior-hunts/` in the repo root stores one YAML file per completed hunt. Read all entries at the start of PREPARE. Write a new entry at the end of ACT+KNOWLEDGE.
+
+**Environment file:** `environment.md` in the repo root describes available indexes, sourcetypes, and key fields. Read it before writing hypotheses. If it is absent or all statuses are "Unknown", run a Splunk data-source validation check (or note offline mode) and document what was found.
+
 ---
 
 ## PEAK Framework Reference (internalize this — apply it, don't just describe it)
@@ -130,7 +134,74 @@ PEAK targets HMM3 minimum. HMM4 requires systematic detection conversion — not
 
 ---
 
-## PHASE 0 — Load dataset and validate
+## PHASE 0 — Prior hunts check + environment load
+
+### 0a. Read the prior-hunts index
+
+Before loading the dataset, read all YAML files in the `prior-hunts/` directory
+(relative to the repo root where this agent runs).
+
+```python
+import os, yaml, glob
+
+PRIOR_HUNTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'prior-hunts')
+# Fall back to looking relative to CWD
+if not os.path.isdir(PRIOR_HUNTS_DIR):
+    PRIOR_HUNTS_DIR = 'prior-hunts'
+
+prior_hunts = []
+for path in sorted(glob.glob(os.path.join(PRIOR_HUNTS_DIR, 'HUNT-*.yaml'))):
+    try:
+        with open(path) as f:
+            prior_hunts.append(yaml.safe_load(f))
+    except Exception as e:
+        print(f"[PRIOR HUNTS] Could not read {path}: {e}")
+
+print(f"[PRIOR HUNTS] Loaded {len(prior_hunts)} prior hunt records")
+```
+
+For each prior hunt, extract: `mitre_techniques`, `hunt_type`, `date`, `outcome`, `key_fp_notes`.
+
+When writing hypotheses in Phase 1, cross-check against this list:
+- Same technique ID + same environment zone, within 90 days → note it in the hunt plan as "Recently hunted: [hunt_id] on [date], outcome: [outcome]." Adjust the hypothesis to look for new signals rather than repeating identically.
+- Same technique, >90 days ago → note it as context, proceed normally.
+- FP notes from prior hunts → inherit them directly into the success criteria for the relevant hypothesis.
+
+If no prior hunts exist yet, proceed — this is the first entry.
+
+### 0b. Read environment.md
+
+```python
+env_file = 'environment.md'
+env_context = ""
+if os.path.isfile(env_file):
+    with open(env_file) as f:
+        env_context = f.read()
+    print(f"[ENV] Loaded environment.md ({len(env_context)} chars)")
+else:
+    print("[ENV] environment.md not found — will rely on Splunk validation or note as unknown")
+```
+
+Parse the "Available Indexes" table and extract:
+- Which indexes have Status = "Present" (known available)
+- Which indexes have Status = "Absent" (known missing)
+- Which have Status = "Unknown" (unverified — treat as potentially absent, validate in Phase 2)
+
+Parse the "Known Gaps" table and extract any documented data gaps that affect hypothesis scope.
+
+Use this context when writing ABLE hypotheses — the Evidence field must reference an index that is Present or Unknown (verifiable). An index that is Absent makes the hypothesis immediately Inconclusive; note it in the hunt plan and skip the execution phase for that hypothesis unless you have a fallback evidence source.
+
+### 0c. Determine hunt mode
+
+The hunt is **formal** (H-type) unless explicitly called with a focus like "investigate" or "explore" in `PEAK_FOCUS`.
+- **Formal hunt (H-type)**: produces all three deliverables, writes a prior-hunts index entry on completion, counts toward metrics.
+- **Investigation (I-type)**: produces a single findings doc at `/tmp/peak-investigation-<date>.md`, does NOT write a prior-hunts entry, does NOT calculate metrics. Use when the user is exploring, not running a structured hunt.
+
+Default: formal hunt.
+
+---
+
+## PHASE 1 — Load dataset and validate
 
 ```bash
 if [ -n "$THREAT_WATCH_URL" ]; then
@@ -163,9 +234,9 @@ Print the dataset timestamp. If it is older than 24 hours, warn the analyst and 
 
 ---
 
-## PHASE 1 — PREPARE
+## PHASE 2 — PREPARE
 
-### 1a. Select hunt type and targets
+### 2a. Select hunt type and targets
 
 Load the dataset with Python and apply this logic:
 
@@ -216,7 +287,7 @@ print(f"HUNT_TYPE={hunt_type}")
 print(f"TARGETS={json.dumps(top)}")
 ```
 
-### 1b. Extract IOCs from each target
+### 2b. Extract IOCs from each target
 
 For each selected target, extract:
 - Named threat actors (from `threat_actors` field)
@@ -239,7 +310,7 @@ SKIP_DOMAINS = {'example.com','google.com','microsoft.com','github.com','localho
 
 Flag which IOCs are **explicitly stated** vs **inferred from context** — this distinction matters for hypothesis confidence.
 
-### 1c. Write ABLE hypotheses
+### 2c. Write ABLE hypotheses
 
 For each target, construct a full ABLE hypothesis. Be specific — do not leave the Evidence field as a generic placeholder.
 
@@ -248,7 +319,7 @@ Example of a good Evidence field: "`index=network sourcetype=stream:http dest_po
 
 If you cannot specify the Evidence field precisely, state what information is missing and what log source would need to be checked.
 
-### 1d. Define data source requirements
+### 2d. Define data source requirements
 
 For each hypothesis, list:
 - Required indexes (must be present to close the hypothesis)
@@ -258,14 +329,14 @@ For each hypothesis, list:
 
 If Splunk is available, verify data source presence now (see validation queries in Phase 2).
 
-### 1e. Set success criteria
+### 2e. Set success criteria
 
 Write explicit criteria before running any queries:
 - What field values, counts, or patterns constitute **Confirmed**?
 - What constitutes a clean **Negative** (data present, no hits)?
 - What constitutes an **Inconclusive** (data absent)?
 
-### 1f. Write the hunt plan
+### 2f. Write the hunt plan
 
 Write `/tmp/peak-hunt-plan-<YYYY-MM-DD>.md` now, before Phase 2 begins.
 
@@ -361,9 +432,9 @@ with open('/tmp/peak-hunt-log-<YYYY-MM-DD>.json', 'w') as f:
 
 ---
 
-## PHASE 2 — EXECUTE
+## PHASE 3 — EXECUTE
 
-### 2a. Data source validation
+### 3a. Data source validation
 
 If `SPLUNK_URL` is set, run these validation queries before hypothesis queries. If not set, skip to 2b and note which sources cannot be verified.
 
@@ -393,7 +464,7 @@ log["data_gaps"].append({
 })
 ```
 
-### 2b. Splunk REST API helper
+### 3b. Splunk REST API helper
 
 Use this for all live queries. Never print credentials.
 
@@ -475,24 +546,49 @@ def splunk_search(spl, earliest="-7d", latest="now", limit=500, label=""):
         return None
 ```
 
-### 2c. Hypothesis queries — broad-first, iterate to narrow
+### 3c. Hypothesis queries — COUNT-FIRST, broad-to-narrow iteration
 
-For each hypothesis, run in this order:
+**COUNT-FIRST is mandatory.** Never pull field values before establishing a result count. Running a full-scan search against a large Splunk index without first knowing the result volume is the single most common cause of runaway query cost and stale context. Follow this 4-step sequence for every hypothesis:
 
-**Query iteration pattern:**
+```
+Step 1 — Baseline count (no field output):
+  index=<target> <broad filter> earliest=-7d | stats count
+  Decision: 0 → check data source, document as negative/inconclusive, STOP
+            1–100 → proceed to Step 2
+            100–1000 → tighten the filter, re-run Step 1
+            >1000 → add time constraint or field filter, re-run Step 1
+
+Step 2 — Filtered count (add specificity, still no field pull):
+  index=<target> <specific filter> earliest=-7d | stats count by <key_field>
+  Review the per-value breakdown. Identify the suspicious subset.
+
+Step 3 — Pull results (only if count is justified):
+  index=<target> <specific filter> earliest=-7d
+  | stats count by host, user, dest_ip
+  | sort -count | head 50
+  Do NOT pull raw events unless Step 2 count < 50 and the field breakdown is ambiguous.
+
+Step 4 — Stop, evaluate, pivot or close:
+  Classify: Confirmed | Investigate | False Positive
+  Document the decision in the hunt log before running any follow-up query.
+  For anything Confirmed or Investigate: proceed to Round 3 confirmation query.
+  For FP: log with rationale and close that lead.
+```
+
+**Query iteration pattern (after COUNT-FIRST passes Step 1):**
 
 ```
 Round 1 (Broad): High recall, low precision. Understand the data shape.
   → 0 results: check data source presence, document as negative or inconclusive
-  → 1–50 results: proceed to Round 2 to classify each result
-  → 50+ results: add filters (time range, source IP, user, threshold), re-run as Round 2
+  → 1–100 results: proceed to Round 2 to classify each result
+  → 100+ results: add filters (time range, source IP, user, threshold), re-run Round 1
 
 Round 2 (Targeted): Add specificity from Round 1 findings. Check for IOC matches.
   → Classify each result: Confirmed | Investigate | False Positive
   → For anything Confirmed or Investigate: proceed to Round 3
 
 Round 3 (Confirmation/Pivot): Follow-up query to confirm or rule out the candidate.
-  → Confirmed: log as finding, proceed to detection artifact in Phase 3
+  → Confirmed: log as finding, proceed to detection artifact in Phase 4
   → Ruled out: log as FP with rationale, close that lead
 ```
 
@@ -559,7 +655,7 @@ index=network earliest=-7d
 
 Generate tailored versions of these for each hypothesis based on the specific actor, technique, and extracted IOCs.
 
-### 2d. Result triage and logging
+### 3d. Result triage and logging
 
 For each result set, apply this classification logic:
 
@@ -589,7 +685,7 @@ log["pivots"].append({
 })
 ```
 
-### 2e. IOC enrichment
+### 3e. IOC enrichment
 
 For any IOC classified as Confirmed or Investigate, run enrichment against public APIs:
 
@@ -649,9 +745,9 @@ Enrich IPs, domains, and CVEs from confirmed/investigate findings. Append result
 
 ---
 
-## PHASE 3 — ACT + KNOWLEDGE
+## PHASE 4 — ACT + KNOWLEDGE
 
-### 3a. Generate detection artifacts
+### 4a. Generate detection artifacts
 
 For every finding classified as Confirmed or Investigate, produce a detection artifact at the highest achievable tier.
 
@@ -698,7 +794,7 @@ index=<index> sourcetype=<sourcetype> earliest=-1h latest=now
 
 Include tuning notes: what threshold was chosen and why (based on observed baseline from hunt), what the expected FP rate is, what follow-up investigation step should trigger.
 
-### 3b. Record all negative findings
+### 4b. Record all negative findings
 
 Negative findings are as valuable as positives — they confirm coverage.
 
@@ -717,7 +813,7 @@ log["negative_findings"].append({
 })
 ```
 
-### 3c. Calculate hunt metrics
+### 4c. Calculate hunt metrics
 
 ```python
 import datetime
@@ -754,7 +850,7 @@ metrics = {
 }
 ```
 
-### 3d. Write the hunt closure report
+### 4d. Write the hunt closure report
 
 Write `/tmp/peak-hunt-report-<YYYY-MM-DD>.md`:
 
@@ -968,7 +1064,74 @@ Write `/tmp/peak-hunt-report-<YYYY-MM-DD>.md`:
 
 ---
 
-## PHASE 4 — Final output and handoff
+## PHASE 5 — Final output and handoff
+
+### 5a. Write the prior-hunts index entry
+
+For formal hunts (H-type), write a YAML file to `prior-hunts/` in the repo root.
+Skip this step for investigations (I-type).
+
+```python
+import os, yaml
+from datetime import datetime
+
+hunt_date = datetime.now().strftime("%Y-%m-%d")
+# Build a slug from focus or technique
+slug = (os.environ.get('PEAK_FOCUS','hunt') or 'hunt').lower()
+slug = re.sub(r'[^a-z0-9]+', '-', slug).strip('-')[:40]
+filename = f"HUNT-{hunt_date.replace('-','')}-{slug}.yaml"
+
+entry = {
+    "hunt_id": f"HUNT-{hunt_date.replace('-','')}-{slug}",
+    "date": hunt_date,
+    "hunt_type": log.get("hunt_type"),
+    "focus": os.environ.get('PEAK_FOCUS', 'auto-selected'),
+    "hypotheses": [
+        {
+            "id": h.get("id"),
+            "actor": h.get("actor"),
+            "behavior": h.get("behavior"),
+            "location": h.get("location"),
+            "evidence_field": h.get("evidence_field"),
+            "outcome": h.get("outcome"),          # confirmed | negative_data_present | inconclusive_data_absent | investigate
+            "data_sources_present": h.get("data_sources_present", True),
+        }
+        for h in log.get("hypotheses", [])
+    ],
+    "mitre_techniques": list({
+        h.get("behavior","").split(" ")[0]
+        for h in log.get("hypotheses", [])
+        if h.get("behavior","").startswith("T")
+    }),
+    "confirmed_findings": metrics.get("confirmed_findings", 0),
+    "detection_artifacts": [
+        f["detection_tier"] for f in log.get("findings", [])
+        if f.get("classification") == "Confirmed"
+    ],
+    "key_fp_notes": "; ".join([
+        f["rationale"] for f in log.get("findings", [])
+        if f.get("classification") == "FP"
+    ]) or "None identified",
+    "re_hunt_trigger": "; ".join([
+        f.get("next_hunt_trigger","") for f in log.get("negative_findings", [])
+        if f.get("next_hunt_trigger")
+    ]) or "Re-run in 90 days or after new threat actor report",
+    "queries_run": metrics.get("queries_executed", 0),
+    "dataset_generated_at": data.get("generated_at", "unknown"),
+}
+
+prior_hunts_dir = "prior-hunts"
+os.makedirs(prior_hunts_dir, exist_ok=True)
+out_path = os.path.join(prior_hunts_dir, filename)
+with open(out_path, 'w') as f:
+    yaml.dump(entry, f, default_flow_style=False, sort_keys=False)
+
+print(f"[PRIOR HUNTS] Written: {out_path}")
+```
+
+This entry will be read by future `/peak-hunt` runs to avoid duplicate hunts and to inherit FP notes.
+
+### 5b. Finalize and summarize
 
 1. Write the final state of the hunt log to `/tmp/peak-hunt-log-<YYYY-MM-DD>.json`
 2. Print a clean summary:

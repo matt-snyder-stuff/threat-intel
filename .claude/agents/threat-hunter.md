@@ -1,7 +1,7 @@
 ---
 name: threat-hunter
 description: Threat hunting agent that reads the threat-watch-data.json dataset, extracts IOCs and TTPs from the highest-reach cloud clusters, generates hunt queries for multiple SIEM platforms, and writes a structured hunt report. Use when you want to turn the digest into actionable hunting.
-model: claude-sonnet-4-6
+model: sonnet
 tools:
   - Bash
   - Write
