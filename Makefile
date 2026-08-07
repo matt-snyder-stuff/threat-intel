@@ -1,6 +1,7 @@
 .PHONY: help run-rss run-opencti run-slack run-splunk run-stix build serve clean \
         docker-rss docker-opencti docker-slack docker-splunk docker-stix docker-serve \
         test test-docker \
+        opencti-up opencti-seed opencti-down \
         tf-init tf-plan tf-apply tf-destroy
 
 SOURCE ?= rss
@@ -27,6 +28,11 @@ help:
 	@echo "Validation:"
 	@echo "  make test           Run RSS pipeline + validate output (local)"
 	@echo "  make test-docker    Build image, run RSS+OpenCTI(mock) pipelines in Docker, validate"
+	@echo ""
+	@echo "OpenCTI live instance (http://localhost:8080):"
+	@echo "  make opencti-up     Start full OpenCTI stack and wait until ready"
+	@echo "  make opencti-seed   Load 10 demo threat reports into running OpenCTI"
+	@echo "  make opencti-down   Stop and remove all OpenCTI containers + volumes"
 	@echo ""
 	@echo "Terraform (AWS + Aviatrix):"
 	@echo "  make tf-init          terraform init"
@@ -125,6 +131,37 @@ docker-stix:
 
 docker-serve:
 	docker compose --profile serve up
+
+# ── OpenCTI live instance ─────────────────────────────────────────────────────
+# Starts a full OpenCTI stack (ES + Redis + RabbitMQ + MinIO + platform)
+# and seeds it with 10 demo threat reports.
+# Login: admin@opencti.io / ChangeMe1234!  UI: http://localhost:8080
+
+opencti-up:
+	docker compose -f tests/docker-compose.opencti.yml up -d
+	@echo "Waiting for OpenCTI to be ready..."
+	@python3 -c "
+import urllib.request, json, time, sys
+token = '8ac2c1f9-0b3d-4f24-a621-4c9b1f2e5a37'
+deadline = time.time() + 300
+while time.time() < deadline:
+    try:
+        req = urllib.request.Request('http://localhost:8080/graphql',
+            data=b'{\"query\":\"{ about { version } }\"}',
+            headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'})
+        d = json.loads(urllib.request.urlopen(req, timeout=5).read())
+        if d.get('data', {}).get('about', {}).get('version'):
+            print('  Ready:', d['data']['about']['version']); sys.exit(0)
+    except Exception: pass
+    sys.stdout.write('.'); sys.stdout.flush(); time.sleep(5)
+print('Timed out'); sys.exit(1)
+"
+
+opencti-seed:
+	python3 tests/seed_opencti.py
+
+opencti-down:
+	docker compose -f tests/docker-compose.opencti.yml down -v
 
 # ── Terraform targets ──────────────────────────────────────────────────────────
 
