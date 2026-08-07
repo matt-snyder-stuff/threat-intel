@@ -11,14 +11,14 @@ resource "aviatrix_vpc" "pipeline" {
 # ── Spoke Gateway ─────────────────────────────────────────────────────────────
 
 resource "aviatrix_spoke_gateway" "pipeline" {
-  cloud_type        = 1
-  account_name      = var.account_name
-  gw_name           = "${var.name_prefix}-spoke-pipeline-gw"
-  vpc_id            = aviatrix_vpc.pipeline.vpc_id
-  vpc_reg           = var.aws_region
-  gw_size           = var.gw_size
-  subnet            = aviatrix_vpc.pipeline.subnets[0].cidr
-  enable_active_mesh = true
+  cloud_type                        = 1
+  account_name                      = var.account_name
+  gw_name                           = "${var.name_prefix}-spoke-pipeline-gw"
+  vpc_id                            = aviatrix_vpc.pipeline.vpc_id
+  vpc_reg                           = var.aws_region
+  gw_size                           = var.gw_size
+  subnet                            = aviatrix_vpc.pipeline.subnets[0].cidr
+  enable_active_mesh                = true
   manage_transit_gateway_attachment = false
 
   tags = { Name = "${var.name_prefix}-spoke-pipeline-gw" }
@@ -97,9 +97,9 @@ resource "aws_iam_role_policy" "pipeline_s3" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "PipelineDataBucket"
-        Effect   = "Allow"
-        Action   = ["s3:PutObject", "s3:GetObject", "s3:ListBucket", "s3:DeleteObject"]
+        Sid    = "PipelineDataBucket"
+        Effect = "Allow"
+        Action = ["s3:PutObject", "s3:GetObject", "s3:ListBucket", "s3:DeleteObject"]
         Resource = [
           aws_s3_bucket.data.arn,
           "${aws_s3_bucket.data.arn}/*"
@@ -126,9 +126,9 @@ resource "aws_iam_role_policy" "pipeline_ssm_params" {
         ] : ["arn:aws:ssm:${var.aws_region}:*:parameter/threat-intel/*"]
       },
       {
-        Sid    = "DecryptSSMSecrets"
-        Effect = "Allow"
-        Action = ["kms:Decrypt"]
+        Sid      = "DecryptSSMSecrets"
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
         Resource = "*"
         Condition = {
           StringEquals = { "kms:ViaService" = "ssm.${var.aws_region}.amazonaws.com" }
@@ -201,11 +201,12 @@ resource "aws_instance" "pipeline" {
   }
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh.tpl", {
-    data_bucket       = var.data_bucket_name
-    pipeline_source   = var.pipeline_source
-    pipeline_git_ref  = var.pipeline_git_ref
-    pipeline_env_ssm  = var.pipeline_env_ssm
-    aws_region        = var.aws_region
+    data_bucket      = var.data_bucket_name
+    pipeline_source  = var.pipeline_source
+    pipeline_git_ref = var.pipeline_git_ref
+    pipeline_env_ssm = var.pipeline_env_ssm
+    aws_region       = var.aws_region
+    opencti_url      = var.opencti_url
   }))
 
   tags = { Name = "${var.name_prefix}-pipeline" }
@@ -261,8 +262,8 @@ resource "aws_iam_role_policy" "eventbridge_ssm" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["ssm:SendCommand"]
+      Effect = "Allow"
+      Action = ["ssm:SendCommand"]
       Resource = [
         "arn:aws:ec2:${var.aws_region}:*:instance/${aws_instance.pipeline.id}",
         "arn:aws:ssm:${var.aws_region}::document/AWS-RunShellScript"

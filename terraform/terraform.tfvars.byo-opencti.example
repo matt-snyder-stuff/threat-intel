@@ -1,0 +1,64 @@
+# ── Mode 2: BYO OpenCTI ───────────────────────────────────────────────────────
+# You already run OpenCTI elsewhere (self-hosted or Filigran cloud).
+# Terraform deploys the pipeline EC2 + Aviatrix network only. The pipeline
+# is auto-configured to call your existing OpenCTI instance.
+#
+# Prerequisites:
+#   - Your OpenCTI instance is reachable over your network or VPN.
+#   - Store your OpenCTI API token in SSM Parameter Store:
+#       aws ssm put-parameter \
+#         --name /threat-intel/prod/opencti_token \
+#         --type SecureString \
+#         --value "your-opencti-api-token"
+#   - Add your OpenCTI FQDN to fqdn_egress_domains if it is a public hostname.
+#     Skip this if OpenCTI is on a private IP reachable via the transit GW.
+#
+# Copy to terraform.tfvars and fill in your values.
+
+aws_region   = "us-east-1"
+environment  = "prod"
+
+# Aviatrix
+aviatrix_admin_password   = "CHANGE_ME_strong_password_here"
+aviatrix_customer_id      = "your-aviatrix-customer-id"
+aviatrix_aws_account_name = "aws-primary"
+
+# Networking
+transit_vpc_cidr        = "10.0.0.0/23"
+spoke_pipeline_vpc_cidr = "10.1.0.0/24"
+
+# Instance sizing
+controller_instance_type = "t3.large"
+transit_gw_size          = "c5.xlarge"
+spoke_gw_size            = "t3.small"
+pipeline_instance_type   = "t3.medium"
+
+# Pipeline — source is auto-set to "opencti" when opencti_url is provided
+pipeline_source   = ""                        # leave empty for auto
+pipeline_schedule = "cron(0 6 * * ? *)"
+pipeline_git_ref  = "main"
+data_bucket_name  = "my-threat-watch-data"
+
+# OpenCTI — BYO
+opencti_deploy    = false
+opencti_url       = "https://opencti.yourorg.com/graphql"   # your instance
+opencti_token_ssm = "/threat-intel/prod/opencti_token"      # SSM path to API token
+
+# Add your OpenCTI FQDN to the egress allowlist if it is public-facing.
+# If OpenCTI is on a private IP reachable via your network, skip this.
+# fqdn_egress_domains = [
+#   "opencti.yourorg.com",
+#   # ...keep the defaults below...
+#   "feeds.feedburner.com",
+#   "www.bleepingcomputer.com",
+#   "therecord.media",
+#   "isc.sans.edu",
+#   "www.cisa.gov",
+#   "s3.amazonaws.com",
+#   "*.s3.amazonaws.com",
+#   "ssm.us-east-1.amazonaws.com",
+#   "ssmmessages.us-east-1.amazonaws.com",
+#   "ec2messages.us-east-1.amazonaws.com",
+# ]
+
+# key_pair_name = "my-key-pair"

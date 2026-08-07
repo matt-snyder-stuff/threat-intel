@@ -3,7 +3,7 @@
 # we only need to declare the VPC here for tagging / referencing from the spoke.
 
 resource "aviatrix_vpc" "transit" {
-  cloud_type           = 1  # AWS
+  cloud_type           = 1 # AWS
   account_name         = var.account_name
   region               = var.aws_region
   name                 = "${var.name_prefix}-transit"
@@ -42,10 +42,10 @@ resource "aviatrix_transit_gateway" "this" {
 resource "aviatrix_fqdn" "egress" {
   fqdn_tag     = "${var.name_prefix}-egress-allowlist"
   fqdn_enabled = true
-  fqdn_mode    = "white"  # allowlist mode
+  fqdn_mode    = "white" # allowlist mode
 
   gw_filter_tag_list {
-    gw_name        = aviatrix_transit_gateway.this.gw_name
+    gw_name           = aviatrix_transit_gateway.this.gw_name
     destination_cidrs = []
   }
 

@@ -151,15 +151,15 @@ resource "aws_iam_role_policy" "aviatrix_gateway" {
         Resource = "*"
       },
       {
-        Sid    = "AviatrixIAMPassRole"
-        Effect = "Allow"
-        Action = ["iam:PassRole", "iam:GetRole"]
+        Sid      = "AviatrixIAMPassRole"
+        Effect   = "Allow"
+        Action   = ["iam:PassRole", "iam:GetRole"]
         Resource = aws_iam_role.aviatrix_gateway.arn
       },
       {
-        Sid    = "AviatrixSTS"
-        Effect = "Allow"
-        Action = ["sts:AssumeRole"]
+        Sid      = "AviatrixSTS"
+        Effect   = "Allow"
+        Action   = ["sts:AssumeRole"]
         Resource = "*"
       }
     ]
@@ -175,7 +175,7 @@ resource "aws_iam_instance_profile" "aviatrix_gateway" {
 
 data "aws_ami" "aviatrix_controller" {
   most_recent = true
-  owners      = ["679593333241"]  # Aviatrix Systems AWS Marketplace account
+  owners      = ["679593333241"] # Aviatrix Systems AWS Marketplace account
 
   filter {
     name   = "name"

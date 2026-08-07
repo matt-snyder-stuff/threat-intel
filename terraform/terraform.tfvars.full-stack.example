@@ -1,0 +1,73 @@
+# ── Mode 3: Full-stack (Terraform deploys OpenCTI) ───────────────────────────
+# Terraform provisions a second spoke VPC with an EC2 running the full OpenCTI
+# stack (OpenCTI platform + Elasticsearch + Redis + RabbitMQ + MinIO) via
+# Docker Compose. The pipeline spoke auto-wires to it.
+#
+# Architecture:
+#   Transit GW
+#     ├── spoke-pipeline  (10.1.0.0/24)  — pipeline EC2
+#     └── spoke-opencti   (10.2.0.0/24)  — OpenCTI EC2 (t3.xlarge minimum)
+#
+# Prerequisites — store two secrets in SSM before running terraform apply:
+#
+#   aws ssm put-parameter \
+#     --name /threat-intel/prod/opencti_password \
+#     --type SecureString \
+#     --value "YourStrongPassword123!"
+#
+#   # Token must be a UUID
+#   aws ssm put-parameter \
+#     --name /threat-intel/prod/opencti_token \
+#     --type SecureString \
+#     --value "$(python3 -c 'import uuid; print(uuid.uuid4())')"
+#
+# After apply, access the UI from your VPN/bastion:
+#   http://<opencti_instance_private_ip>:8080
+#   Email:    admin@opencti.io
+#   Password: (from SSM)
+#
+# IMPORTANT: terraform destroy will fail with an error because the OpenCTI data
+# volume has prevent_destroy = true. This is intentional — it protects your
+# threat intel data. To destroy fully:
+#   1. terraform state rm module.spoke_opencti[0].aws_ebs_volume.opencti_data
+#   2. terraform destroy
+#   3. Manually delete the EBS volume if no longer needed.
+#
+# Copy to terraform.tfvars and fill in your values.
+
+aws_region   = "us-east-1"
+environment  = "prod"
+
+# Aviatrix
+aviatrix_admin_password   = "CHANGE_ME_strong_password_here"
+aviatrix_customer_id      = "your-aviatrix-customer-id"
+aviatrix_aws_account_name = "aws-primary"
+
+# Networking
+transit_vpc_cidr        = "10.0.0.0/23"
+spoke_pipeline_vpc_cidr = "10.1.0.0/24"
+spoke_opencti_vpc_cidr  = "10.2.0.0/24"
+
+# Instance sizing
+controller_instance_type = "t3.large"
+transit_gw_size          = "c5.xlarge"
+spoke_gw_size            = "t3.small"
+pipeline_instance_type   = "t3.medium"
+opencti_instance_type    = "t3.xlarge"   # minimum: 4 vCPU / 16 GB
+
+# Pipeline — source auto-set to "opencti" because opencti_deploy = true
+pipeline_source   = ""                        # leave empty for auto
+pipeline_schedule = "cron(0 6 * * ? *)"
+pipeline_git_ref  = "main"
+data_bucket_name  = "my-threat-watch-data"
+
+# OpenCTI — full-stack deploy
+opencti_deploy    = true
+opencti_version   = "6.2.18"
+opencti_port      = 8080
+opencti_admin_email        = "admin@opencti.io"
+opencti_admin_password_ssm = "/threat-intel/prod/opencti_password"
+opencti_admin_token_ssm    = "/threat-intel/prod/opencti_token"
+opencti_data_volume_size   = 100   # GiB — increase for large intel corpora
+
+# key_pair_name = "my-key-pair"

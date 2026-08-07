@@ -48,6 +48,12 @@ variable "spoke_pipeline_vpc_cidr" {
   default     = "10.1.0.0/24"
 }
 
+variable "spoke_opencti_vpc_cidr" {
+  description = "CIDR block for the OpenCTI spoke VPC. Only used when opencti_deploy = true."
+  type        = string
+  default     = "10.2.0.0/24"
+}
+
 variable "transit_gw_size" {
   description = "EC2 instance type for the Aviatrix Transit Gateway."
   type        = string
@@ -55,7 +61,7 @@ variable "transit_gw_size" {
 }
 
 variable "spoke_gw_size" {
-  description = "EC2 instance type for the Aviatrix Spoke Gateway."
+  description = "EC2 instance type for the Aviatrix Spoke Gateways (pipeline and OpenCTI)."
   type        = string
   default     = "t3.small"
 }
@@ -88,7 +94,7 @@ variable "fqdn_egress_domains" {
     "crt.sh",
     "rdap.org",
     "ipapi.co",
-    # OpenCTI (add your instance FQDN here)
+    # OpenCTI (BYO — add your instance FQDN if not using opencti_deploy)
     # "opencti.example.com",
     # Splunk Cloud (add your instance FQDN here)
     # "your-instance.splunkcloud.com",
@@ -101,19 +107,31 @@ variable "fqdn_egress_domains" {
     "ssm.us-east-1.amazonaws.com",
     "ssmmessages.us-east-1.amazonaws.com",
     "ec2messages.us-east-1.amazonaws.com",
+    # Docker Hub (only needed when opencti_deploy = true)
+    # "registry-1.docker.io",
+    # "auth.docker.io",
+    # "production.cloudflare.docker.com",
+    # Elastic container registry (only needed when opencti_deploy = true)
+    # "docker.elastic.co",
   ]
 }
 
 # ── Pipeline config ───────────────────────────────────────────────────────────
 
 variable "pipeline_source" {
-  description = "Default threat intel source for the pipeline (rss / opencti / slack / splunk)."
+  description = <<-EOT
+    Threat intel source for the pipeline. Leave empty ("") to auto-select based
+    on OpenCTI configuration: "opencti" when opencti_deploy = true or opencti_url
+    is set, otherwise "rss".
+
+    Valid values: rss, opencti, slack, splunk, stix, or "" (auto).
+  EOT
   type        = string
-  default     = "rss"
+  default     = ""
 
   validation {
-    condition     = contains(["rss", "opencti", "slack", "splunk", "stix"], var.pipeline_source)
-    error_message = "pipeline_source must be one of: rss, opencti, slack, splunk, stix."
+    condition     = contains(["rss", "opencti", "slack", "splunk", "stix", ""], var.pipeline_source)
+    error_message = "pipeline_source must be one of: rss, opencti, slack, splunk, stix, or empty string for auto."
   }
 }
 
@@ -121,6 +139,12 @@ variable "pipeline_schedule" {
   description = "Cron expression (UTC) for the pipeline EventBridge rule."
   type        = string
   default     = "cron(0 6 * * ? *)"
+}
+
+variable "pipeline_git_ref" {
+  description = "Git ref (branch, tag, or SHA) to checkout after clone. Pin to a tag for production."
+  type        = string
+  default     = "main"
 }
 
 variable "pipeline_env_vars" {
@@ -139,4 +163,81 @@ variable "key_pair_name" {
   description = "EC2 key pair name for emergency SSH access (optional — SSM Session Manager is preferred)."
   type        = string
   default     = ""
+}
+
+# ── OpenCTI — three deployment modes ─────────────────────────────────────────
+#
+# Mode 1 — Pipeline only (default)
+#   opencti_deploy = false, opencti_url = ""
+#   Use pipeline_source = "rss" / "stix" / "splunk" / "slack"
+#
+# Mode 2 — BYO OpenCTI
+#   opencti_deploy = false
+#   opencti_url    = "https://opencti.yourorg.com/graphql"
+#   opencti_token_ssm = "/threat-intel/prod/opencti_token"
+#   pipeline_source is auto-set to "opencti"
+#
+# Mode 3 — Full-stack (Terraform deploys OpenCTI on its own spoke)
+#   opencti_deploy = true
+#   Supply opencti_admin_password_ssm and opencti_admin_token_ssm
+#   Everything else auto-wires
+
+variable "opencti_deploy" {
+  description = "When true, Terraform deploys a full OpenCTI stack on a dedicated spoke VPC (Mode 3). False = pipeline-only or BYO (Modes 1 and 2)."
+  type        = bool
+  default     = false
+}
+
+variable "opencti_url" {
+  description = "OpenCTI GraphQL URL for BYO mode (Mode 2). Example: https://opencti.yourorg.com/graphql. Leave empty when opencti_deploy = true (URL is derived automatically)."
+  type        = string
+  default     = ""
+}
+
+variable "opencti_token_ssm" {
+  description = "SSM parameter path holding the OpenCTI API token for BYO mode. Example: /threat-intel/prod/opencti_token. Leave empty when opencti_deploy = true (the token SSM path is passed directly to the OpenCTI EC2)."
+  type        = string
+  default     = ""
+}
+
+variable "opencti_instance_type" {
+  description = "EC2 instance type for the OpenCTI EC2 (full-stack mode). t3.xlarge is the minimum: OpenCTI + Elasticsearch + Redis + RabbitMQ + MinIO all run here."
+  type        = string
+  default     = "t3.xlarge"
+}
+
+variable "opencti_version" {
+  description = "OpenCTI platform Docker image tag."
+  type        = string
+  default     = "6.2.18"
+}
+
+variable "opencti_port" {
+  description = "Port OpenCTI listens on in full-stack mode."
+  type        = number
+  default     = 8080
+}
+
+variable "opencti_admin_email" {
+  description = "Admin email for the OpenCTI instance created in full-stack mode."
+  type        = string
+  default     = "admin@opencti.io"
+}
+
+variable "opencti_admin_password_ssm" {
+  description = "SSM parameter path for the OpenCTI admin password (full-stack mode). Required when opencti_deploy = true."
+  type        = string
+  default     = ""
+}
+
+variable "opencti_admin_token_ssm" {
+  description = "SSM parameter path for the OpenCTI admin API token (must be a UUID). Required when opencti_deploy = true."
+  type        = string
+  default     = ""
+}
+
+variable "opencti_data_volume_size" {
+  description = "EBS data volume size (GiB) for OpenCTI in full-stack mode. Holds Elasticsearch indices and MinIO objects."
+  type        = number
+  default     = 100
 }

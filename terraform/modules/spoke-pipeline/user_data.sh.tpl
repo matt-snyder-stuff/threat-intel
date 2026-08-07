@@ -31,6 +31,9 @@ RAW_OUT=/tmp/tw-30d.json
 PUB_SIDECAR=/tmp/tw-30d-published.json
 HTML_OUT=/tmp/threat-watch.html
 JSON_OUT=/tmp/threat-watch-data.json
+%{ if opencti_url != "" ~}
+OPENCTI_URL=${opencti_url}
+%{ endif ~}
 EOF
 chmod 600 /etc/threat-intel.env
 
