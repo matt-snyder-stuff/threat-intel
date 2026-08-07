@@ -26,7 +26,7 @@ help:
 	@echo ""
 	@echo "Validation:"
 	@echo "  make test           Run RSS pipeline + validate output (local)"
-	@echo "  make test-docker    Build image, run RSS pipeline in Docker, validate output"
+	@echo "  make test-docker    Build image, run RSS+OpenCTI(mock) pipelines in Docker, validate"
 	@echo ""
 	@echo "Terraform (AWS + Aviatrix):"
 	@echo "  make tf-init          terraform init"
@@ -71,16 +71,37 @@ test:
 	PKL_IN=/tmp/tw-30d-processed.pkl JSON_IN=/tmp/threat-watch-data.json python3 tests/validate.py
 
 test-docker:
-	@mkdir -p /tmp/ti-test-docker
+	@mkdir -p /tmp/ti-test-rss /tmp/ti-test-opencti /tmp/ti-test-splunk
 	docker build -t threat-intel-pipeline:dev .
-	docker run --rm -v /tmp/ti-test-docker:/data \
+	@echo ""
+	@echo "--- RSS ---"
+	docker run --rm -v /tmp/ti-test-rss:/data \
 	  -e PKL_OUT=/data/tw-30d-processed.pkl \
 	  -e PUB_SIDECAR=/data/tw-30d-published.json \
 	  -e HTML_OUT=/data/threat-watch.html \
 	  -e JSON_OUT=/data/threat-watch-data.json \
 	  -e CUTOFF_DAYS=30 \
 	  threat-intel-pipeline:dev --source rss --build
-	docker run --rm -v /tmp/ti-test-docker:/data -v ./tests:/app/tests \
+	docker run --rm -v /tmp/ti-test-rss:/data -v ./tests:/app/tests \
+	  -e PKL_IN=/data/tw-30d-processed.pkl \
+	  -e JSON_IN=/data/threat-watch-data.json \
+	  --entrypoint python3 threat-intel-pipeline:dev tests/validate.py
+	@echo ""
+	@echo "--- OpenCTI (mock) ---"
+	python3 tests/mock_opencti.py --port 18080 & echo $$! > /tmp/ti-mock-opencti.pid; sleep 1
+	docker run --rm -v /tmp/ti-test-opencti:/data \
+	  --add-host host.docker.internal:host-gateway \
+	  -e PKL_OUT=/data/tw-30d-processed.pkl \
+	  -e RAW_OUT=/data/tw-30d.json \
+	  -e PUB_SIDECAR=/data/tw-30d-published.json \
+	  -e HTML_OUT=/data/threat-watch.html \
+	  -e JSON_OUT=/data/threat-watch-data.json \
+	  -e OPENCTI_URL=http://host.docker.internal:18080/graphql \
+	  -e OPENCTI_TOKEN=mock-token \
+	  -e CUTOFF_DAYS=30 \
+	  threat-intel-pipeline:dev --source opencti --build; \
+	  kill $$(cat /tmp/ti-mock-opencti.pid) 2>/dev/null; rm -f /tmp/ti-mock-opencti.pid
+	docker run --rm -v /tmp/ti-test-opencti:/data -v ./tests:/app/tests \
 	  -e PKL_IN=/data/tw-30d-processed.pkl \
 	  -e JSON_IN=/data/threat-watch-data.json \
 	  --entrypoint python3 threat-intel-pipeline:dev tests/validate.py
