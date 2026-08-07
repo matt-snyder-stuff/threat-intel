@@ -13,7 +13,7 @@ You are an IOC enrichment analyst. Your job is to take indicators extracted from
 
 If the user provides explicit IOCs (IPs, domains, hashes, CVEs), use those.
 
-Otherwise, extract IOCs from the threat-watch-data.json dataset:
+Otherwise, extract IOCs from the threat-watch-data.json dataset using `sources/base.py`'s `extract_iocs` and `refang` helpers, which handle defanged variants (`hxxp://`, `evil[.]com`, `1[.]2[.]3[.]4`):
 
 ```bash
 # Load dataset
@@ -26,37 +26,49 @@ else
 fi
 ```
 
-Then extract IOCs from `cloud_clusters[*].lead.description` and `last_24h.reports[*].description` using a Python script:
-
 ```python
-import json, re, sys
+import json, sys, os
+sys.path.insert(0, os.getcwd())
+from sources.base import extract_iocs, refang
 
 with open("/tmp/enrich-data.json") as f:
     d = json.load(f)
 
-CVE_RE    = re.compile(r"CVE-\d{4}-\d{4,7}", re.I)
-DOMAIN_RE = re.compile(r"\b(?:[a-z0-9-]{1,63}\.){1,3}(?:com|net|org|io|ai|dev|app|co|gov)\b", re.I)
-IP_RE     = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
-
-cves, domains, ips = set(), set(), set()
+# Collect all text fields — including descriptions that may contain defanged IOCs
 texts = []
 for c in d.get("cloud_clusters", []):
     texts.append(c.get("lead", {}).get("description", ""))
+    for r in c.get("reports", []):
+        texts.append(r.get("description", ""))
 for r in d.get("last_24h", {}).get("reports", []):
     texts.append(r.get("description", ""))
 
-LEGIT = {"8.8.8.8","1.1.1.1","0.0.0.0","127.0.0.1","255.255.255.255"}
-LEGIT_DOMAINS = {"example.com","localhost","google.com","github.com","microsoft.com"}
-
+# Merge IOCs across all texts, deduplicated
+merged: dict = {"cve": set(), "ipv4": set(), "url": set(),
+                "md5": set(), "sha1": set(), "sha256": set(), "domain": set()}
 for t in texts:
-    cves.update(CVE_RE.findall(t))
-    ips.update(i for i in IP_RE.findall(t) if i not in LEGIT)
-    domains.update(dm for dm in DOMAIN_RE.findall(t) if dm.lower() not in LEGIT_DOMAINS)
+    for ioc_type, vals in extract_iocs(t).items():
+        merged[ioc_type].update(vals)
 
-print("CVEs:",    sorted(cves)[:10])
-print("IPs:",     sorted(ips)[:10])
-print("Domains:", sorted(domains)[:10])
+# Filter obvious false positives
+FP_IPS = {"8.8.8.8","1.1.1.1","0.0.0.0","127.0.0.1","255.255.255.255","10.0.0.0","192.168.0.1"}
+FP_DOMAINS = {"example.com","localhost","google.com","github.com","microsoft.com"}
+merged["ipv4"]   = {ip for ip in merged["ipv4"]   if ip not in FP_IPS}
+merged["domain"] = {d  for d  in merged["domain"] if d.lower() not in FP_DOMAINS}
+
+# Cap each type to top 10 for enrichment
+cves    = sorted(merged["cve"])[:10]
+ips     = sorted(merged["ipv4"])[:10]
+domains = sorted(merged["domain"])[:10]
+hashes  = sorted(merged["sha256"] | merged["sha1"] | merged["md5"])[:10]
+
+print("CVEs:",    cves)
+print("IPs:",     ips)
+print("Domains:", domains)
+print("Hashes:",  hashes)
 ```
+
+**Always call `refang(value)` before passing any IOC value to an API.** The pipeline stores plain (refanged) values after extraction, but if working with raw text outside of `extract_iocs`, defanged values must be normalized first or API calls will silently fail.
 
 ## Enrichment APIs (no auth required)
 

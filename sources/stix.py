@@ -41,7 +41,7 @@ Examples:
   # Local bundle file
   export STIX_FILE=/path/to/bundle.json
 """
-import base64, json, os, sys, urllib.request, urllib.error
+import base64, json, os, re, sys, urllib.request, urllib.error
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urljoin, urlparse
 
@@ -53,6 +53,7 @@ from sources.base import (
     confidence_for_publisher,
     save_pickle,
     save_published,
+    extract_iocs,
     VENDORS_TIER1,
     VENDORS_TIER2,
     _VRE1,
@@ -235,18 +236,46 @@ def _stix_url(obj, source_label):
 
 
 def _stix_external_id(obj):
-    """Return the first external ID (ATT&CK technique ID, CVE, etc.) if present."""
+    """Return the first non-ATT&CK external ID (CVE, CWE, etc.) if present."""
     for ref in obj.get("external_references", []):
         eid = ref.get("external_id", "")
-        if eid:
+        src = ref.get("source_name", "")
+        if eid and src != "mitre-attack":
             return eid
     return ""
+
+
+def _stix_attack_technique_ids(obj):
+    """Return list of ATT&CK technique IDs from external_references (e.g. ['T1059', 'T1078.004'])."""
+    ids = []
+    for ref in obj.get("external_references", []):
+        if ref.get("source_name") == "mitre-attack":
+            eid = ref.get("external_id", "")
+            if re.match(r'T\d{4}(?:\.\d{3})?$', eid):
+                ids.append(eid)
+    return ids
+
+
+def _stix_mitre_tactics(obj):
+    """Return list of ATT&CK tactic phase names from kill_chain_phases."""
+    tactics = []
+    for phase in obj.get("kill_chain_phases", []):
+        if phase.get("kill_chain_name") == "mitre-attack":
+            name = phase.get("phase_name", "")
+            if name and name not in tactics:
+                tactics.append(name)
+    return tactics
 
 
 def _object_to_item(obj, source_label, cutoff_dt):
     """Convert a single STIX object to a pipeline item dict, or return None if filtered."""
     obj_type = obj.get("type", "")
     if obj_type not in _STIX_REPORT_TYPES:
+        return None
+
+    # Drop revoked or deprecated objects — MITRE docs require explicit checks here
+    # because STIX library built-in filters are unreliable for these fields.
+    if obj.get("revoked") or obj.get("x_mitre_deprecated"):
         return None
 
     # Date: prefer published > modified > created
@@ -260,37 +289,48 @@ def _object_to_item(obj, source_label, cutoff_dt):
     url      = _stix_url(obj, source_label)
     ext_id   = _stix_external_id(obj)
 
-    # Augment name with external ID when it adds useful context (CVE, T-ID)
+    # Augment name with non-ATT&CK external ID when it adds context (CVE, CWE, etc.)
+    # ATT&CK technique IDs go into the structured attack_technique_ids field instead.
     if ext_id and ext_id not in name:
         name = f"{name} [{ext_id}]" if name else ext_id
 
     # Publisher: prefer source_label, fall back to type label, then URL
     publisher = source_label or _TYPE_LABELS.get(obj_type, "STIX")
 
-    labels    = auto_labels(name + " " + desc)
-    tas       = extract_tas(name, desc, obj.get("threat_actor_refs", []))
+    labels         = auto_labels(name + " " + desc)
+    attack_ids     = _stix_attack_technique_ids(obj)
+    mitre_tactics  = _stix_mitre_tactics(obj)
 
-    # Pull threat actor names from STIX threat-actor objects referenced by id
-    # (actual resolution would require the full bundle; best-effort from name/desc)
-    if obj_type == "threat-actor" and name:
+    # Seed tas from any structured aliases list (intrusion-set carries these)
+    aliases = obj.get("aliases", [])
+    tas = extract_tas(name, desc, aliases)
+
+    # For threat-actor objects without aliases, also seed from name directly
+    if obj_type == "threat-actor" and name and name not in tas:
         tas = extract_tas(name, desc, [name])
 
     t1_vend = extract_vendors(name, desc, _VRE1, VENDORS_TIER1)
     t2_vend = extract_vendors(name, desc, _VRE2, VENDORS_TIER2)
 
+    # Extract structured IOCs from description for enrichment routing
+    iocs = extract_iocs(desc)
+
     return {
-        "id":          obj.get("id", ""),
-        "name":        name[:400],
-        "created":     created,
-        "confidence":  _stix_confidence(obj),
-        "all_labels":  labels,
-        "labels":      labels,
-        "publisher":   publisher,
-        "url":         url,
-        "tas":         tas,
-        "t1_vendors":  t1_vend,
-        "t2_vendors":  t2_vend,
-        "description": desc,
+        "id":                    obj.get("id", ""),
+        "name":                  name[:400],
+        "created":               created,
+        "confidence":            _stix_confidence(obj),
+        "all_labels":            labels,
+        "labels":                labels,
+        "publisher":             publisher,
+        "url":                   url,
+        "tas":                   tas,
+        "t1_vendors":            t1_vend,
+        "t2_vendors":            t2_vend,
+        "description":           desc,
+        "attack_technique_ids":  attack_ids,
+        "mitre_tactics":         mitre_tactics,
+        "iocs":                  iocs,
     }
 
 

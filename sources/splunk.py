@@ -26,7 +26,7 @@ from urllib import request, error
 from urllib.parse import urlencode
 
 from sources.base import (
-    extract_tas, extract_vendors, VENDORS_TIER1, VENDORS_TIER2,
+    extract_tas, extract_vendors, extract_iocs, VENDORS_TIER1, VENDORS_TIER2,
     _VRE1, _VRE2, auto_labels, publisher_from_url, save_pickle, save_published,
 )
 
@@ -193,18 +193,21 @@ def run():
         t2v     = extract_vendors(name, desc, _VRE2, VENDORS_TIER2)
 
         item = {
-            "id":          item_id,
-            "name":        name,
-            "created":     created,
-            "confidence":  conf,
-            "all_labels":  labels,
-            "labels":      labels,
-            "publisher":   pub,
-            "url":         url,
-            "tas":         tas,
-            "t1_vendors":  t1v,
-            "t2_vendors":  t2v,
-            "description": desc,
+            "id":                   item_id,
+            "name":                 name,
+            "created":              created,
+            "confidence":           conf,
+            "all_labels":           labels,
+            "labels":               labels,
+            "publisher":            pub,
+            "url":                  url,
+            "tas":                  tas,
+            "t1_vendors":           t1v,
+            "t2_vendors":           t2v,
+            "description":          desc,
+            "attack_technique_ids": [],
+            "mitre_tactics":        [],
+            "iocs":                 extract_iocs(desc),
         }
         items.append(item)
         if url:

@@ -22,6 +22,7 @@ from sources.base import (
     confidence_for_publisher,
     extract_tas,
     extract_vendors,
+    extract_iocs,
     save_pickle,
     save_published,
     auto_labels,
@@ -132,18 +133,21 @@ def run():
         t2_vend     = extract_vendors(name, description, _VRE2, VENDORS_TIER2)
 
         items.append({
-            "id":          ts,
-            "name":        name,
-            "created":     created,
-            "confidence":  confidence_for_publisher(publisher),
-            "all_labels":  labels,
-            "labels":      labels,
-            "publisher":   publisher,
-            "url":         first_url,
-            "tas":         tas,
-            "t1_vendors":  t1_vend,
-            "t2_vendors":  t2_vend,
-            "description": description,
+            "id":                   ts,
+            "name":                 name,
+            "created":              created,
+            "confidence":           confidence_for_publisher(publisher),
+            "all_labels":           labels,
+            "labels":               labels,
+            "publisher":            publisher,
+            "url":                  first_url,
+            "tas":                  tas,
+            "t1_vendors":           t1_vend,
+            "t2_vendors":           t2_vend,
+            "description":          description,
+            "attack_technique_ids": [],
+            "mitre_tactics":        [],
+            "iocs":                 extract_iocs(description),
         })
 
     print(f"Processed {len(items)} items (cutoff: {cutoff_dt.date()})", file=sys.stderr)

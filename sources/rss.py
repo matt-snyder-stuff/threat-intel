@@ -17,6 +17,7 @@ from sources.base import (
     confidence_for_publisher,
     extract_tas,
     extract_vendors,
+    extract_iocs,
     save_pickle,
     save_published,
     auto_labels,
@@ -186,18 +187,21 @@ def run():
             pub_dates[item_id] = created.isoformat()
 
             items.append({
-                "id":          item_id,
-                "name":        name,
-                "created":     created,
-                "confidence":  confidence_for_publisher(publisher),
-                "all_labels":  labels,
-                "labels":      labels,
-                "publisher":   publisher,
-                "url":         url,
-                "tas":         tas,
-                "t1_vendors":  t1_vend,
-                "t2_vendors":  t2_vend,
-                "description": desc,
+                "id":                   item_id,
+                "name":                 name,
+                "created":              created,
+                "confidence":           confidence_for_publisher(publisher),
+                "all_labels":           labels,
+                "labels":               labels,
+                "publisher":            publisher,
+                "url":                  url,
+                "tas":                  tas,
+                "t1_vendors":           t1_vend,
+                "t2_vendors":           t2_vend,
+                "description":          desc,
+                "attack_technique_ids": [],
+                "mitre_tactics":        [],
+                "iocs":                 extract_iocs(desc),
             })
 
     # Deduplicate by id (same item may appear in multiple feeds)

@@ -18,6 +18,7 @@ from sources.base import (
     publisher_from_url,
     extract_tas,
     extract_vendors,
+    extract_iocs,
     auto_labels,
     save_pickle,
     save_published,
@@ -210,19 +211,23 @@ def run():
         t2_vend = extract_vendors(name, desc, _VRE2, VENDORS_TIER2)
 
         items.append({
-            "id":          n["id"],
-            "name":        name,
-            "created":     created,
-            "confidence":  n.get("confidence") or 0,
-            "all_labels":  labels,
-            "labels":      labels,   # alias — build.py uses both keys
-            "publisher":   publisher,
-            "url":         url_val,
-            "tas":         tas,
-            "t1_vendors":  t1_vend,
-            "t2_vendors":  t2_vend,
+            "id":                   n["id"],
+            "name":                 name,
+            "created":              created,
+            "confidence":           n.get("confidence") or 0,
+            "all_labels":           labels,
+            "labels":               labels,   # alias — build.py uses both keys
+            "publisher":            publisher,
+            "url":                  url_val,
+            "tas":                  tas,
+            "t1_vendors":           t1_vend,
+            "t2_vendors":           t2_vend,
             # description injected by build.py from raw JSON; empty here is fine
-            "description": "",
+            "description":          "",
+            "attack_technique_ids": [],
+            "mitre_tactics":        [],
+            # iocs populated from description after build.py enrichment
+            "iocs":                 {},
         })
 
     print(f"Processed {len(items)} items (cutoff: {cutoff_dt.date()})", file=sys.stderr)

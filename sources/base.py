@@ -5,6 +5,7 @@ Extracted from generator/fetch_and_process.py so every source can import:
   - KNOWN_ACTORS, ACTOR_RE, extract_tas()
   - PUBLISHER_MAP, publisher_from_url()
   - VENDORS_TIER1, VENDORS_TIER2, extract_vendors()
+  - refang(), extract_cves(), extract_iocs(), classify_ioc()
   - save_pickle(), save_published()
 """
 import json, os, pickle, re
@@ -236,6 +237,146 @@ def extract_vendors(name, description, tier_re, canonical_list):
         if canon not in found:
             found.append(canon)
     return found
+
+
+# ── IOC extraction helpers ────────────────────────────────────────────────────
+
+# CVE pattern — covers CVE-YYYY-NNNN through CVE-YYYY-NNNNNNN
+_CVE_RE = re.compile(r'\bCVE-\d{4}-\d{4,7}\b', re.IGNORECASE)
+
+# Hash patterns anchored on non-hex / word boundaries to avoid substring matches
+_MD5_RE    = re.compile(r'(?<![a-fA-F\d])[a-fA-F\d]{32}(?![a-fA-F\d])')
+_SHA1_RE   = re.compile(r'(?<![a-fA-F\d])[a-fA-F\d]{40}(?![a-fA-F\d])')
+_SHA256_RE = re.compile(r'(?<![a-fA-F\d])[a-fA-F\d]{64}(?![a-fA-F\d])')
+
+# IPv4: plain or defanged (bracketed/parenthesized dots, backslash dots)
+_IPV4_RE = re.compile(
+    r'\b(?:\d{1,3}(?:[\[\(\\]\.\]?|\.)[\]\)]?){3}\d{1,3}\b'
+)
+
+# URL: plain or defanged schemes (hxxp, hxxps) + bracket-defanged bare domains
+_URL_RE = re.compile(
+    r'(?:https?|hxxps?|ftps?|fxps?)(?:://|:\\\\|__|\[://\])'
+    r'[^\s\[\]<>"\']+',
+    re.IGNORECASE,
+)
+_BRACKET_URL_RE = re.compile(
+    r'(?:[a-zA-Z0-9\-]+\[?\.\]?[a-zA-Z]{2,})'
+    r'(?:/[^\s\[\]<>"\']*)?',
+)
+
+# Trailing punctuation to strip from extracted values
+_TRAIL_RE = re.compile(r'[\.\?>"\')\]]+$')
+
+
+def refang(value: str) -> str:
+    """Normalize a defanged IOC string to its plain form.
+
+    Handles bracket/paren notation, hxxp schemes, and Unicode middle dot.
+    """
+    v = value
+    # Scheme obfuscation: hxxp(s) → http(s), fxp/ftx → ftp
+    v = re.sub(r'^hxxps?', lambda m: m.group(0).replace('xx', 'tt'), v, flags=re.I)
+    v = re.sub(r'^f[xt]ps?', lambda m: 'ftp' + m.group(0)[3:], v, flags=re.I)
+    # Delimiter obfuscation: :// variants
+    v = re.sub(r'(?i)(https?|ftps?)(:\\\\|__|__)', r'\1://', v)
+    # Dot obfuscation: [.] (.) [dot] (dot) \. and Unicode middle dot
+    for pat, rep in (
+        ('[dot]', '.'), ('(dot)', '.'), ('[.]', '.'), ('(.)', '.'),
+        (r'\.', '.'), ('・', '.'), ('․', '.'),
+    ):
+        v = v.replace(pat, rep)
+    # Strip bracket/paren around individual octets: 1[.]2 → 1.2
+    v = re.sub(r'[\[\(]\.[\]\)]', '.', v)
+    # Remove trailing punctuation noise
+    v = _TRAIL_RE.sub('', v)
+    return v
+
+
+def extract_cves(text: str) -> list:
+    """Return deduplicated CVE IDs found in *text*, uppercased."""
+    seen, result = set(), []
+    for m in _CVE_RE.finditer(text or ""):
+        cve = m.group(0).upper()
+        if cve not in seen:
+            seen.add(cve)
+            result.append(cve)
+    return result
+
+
+def classify_ioc(value: str) -> str:
+    """Return the IOC type string for a plain (refanged) value."""
+    v = value.strip()
+    if _CVE_RE.match(v):
+        return "cve"
+    lv = len(v)
+    if re.fullmatch(r'[a-fA-F\d]+', v):
+        if lv == 32:   return "md5"
+        if lv == 40:   return "sha1"
+        if lv == 64:   return "sha256"
+        if lv == 128:  return "sha512"
+    if re.fullmatch(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', v):
+        return "ipv4"
+    if re.fullmatch(r'[0-9a-fA-F:]{2,39}', v) and ':' in v:
+        return "ipv6"
+    if v.startswith(('http://', 'https://', 'ftp://')):
+        return "url"
+    if re.fullmatch(r'[a-zA-Z0-9\-]+(?:\.[a-zA-Z0-9\-]+)+', v) and '.' in v:
+        return "domain"
+    return "unknown"
+
+
+def extract_iocs(text: str) -> dict:
+    """Extract structured IOCs from free text, including defanged variants.
+
+    Returns a dict with lists keyed by IOC type:
+      {"cve": [...], "ipv4": [...], "url": [...], "md5": [...],
+       "sha1": [...], "sha256": [...], "domain": [...]}
+
+    All values are refanged (plain form, no brackets or hxxp).
+    """
+    t = (text or "").replace("\x00", "")  # strip wide-char null bytes
+    seen: dict = {}
+
+    def _add(ioc_type, raw):
+        val = refang(raw).strip()
+        if not val:
+            return
+        key = (ioc_type, val.lower() if ioc_type in ("url", "domain") else val.upper() if ioc_type == "cve" else val)
+        if key not in seen:
+            seen[key] = (ioc_type, val)
+
+    for m in _CVE_RE.finditer(t):
+        _add("cve", m.group(0))
+
+    for m in _IPV4_RE.finditer(t):
+        candidate = refang(m.group(0))
+        # Validate all four octets are 0-255
+        parts = candidate.split(".")
+        if len(parts) == 4 and all(p.isdigit() and 0 <= int(p) <= 255 for p in parts):
+            _add("ipv4", m.group(0))
+
+    for m in _URL_RE.finditer(t):
+        _add("url", m.group(0))
+
+    for m in _MD5_RE.finditer(t):
+        _add("md5", m.group(0))
+
+    for m in _SHA1_RE.finditer(t):
+        # Exclude values that also match SHA256 (first 40 hex chars of a 64-char string)
+        start, end = m.start(), m.end()
+        if end < len(t) and t[end] in '0123456789abcdefABCDEF':
+            continue
+        _add("sha1", m.group(0))
+
+    for m in _SHA256_RE.finditer(t):
+        _add("sha256", m.group(0))
+
+    result: dict = {"cve": [], "ipv4": [], "url": [], "md5": [], "sha1": [], "sha256": [], "domain": []}
+    for ioc_type, val in seen.values():
+        if ioc_type in result:
+            result[ioc_type].append(val)
+    return result
 
 
 # ── Pickle / sidecar writers ──────────────────────────────────────────────────
