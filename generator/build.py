@@ -210,6 +210,71 @@ for i in items:
 for i in items:
     i["mitre"] = extract_mitre(i)
 
+# Tactic label lookup keyed by technique ID prefix.
+# Used to derive mitre_tactics from technique IDs for sources that don't carry them.
+_TACTIC_MAP = {
+    "T1566": "initial-access",   "T1190": "initial-access",   "T1195": "initial-access",
+    "T1554": "initial-access",   "T1078": "defense-evasion",
+    "T1528": "credential-access","T1552": "credential-access", "T1621": "credential-access",
+    "T1548": "privilege-escalation",
+    "T1021": "lateral-movement", "T1570": "lateral-movement",
+    "T1041": "exfiltration",     "T1567": "exfiltration",
+    "T1486": "impact",
+    "T1543": "persistence",      "T1505": "persistence",
+    "T1071": "command-and-control",
+    "T1041": "exfiltration",
+    "T1059": "execution",
+    "T1611": "privilege-escalation", "T1609": "execution",
+    "T1098": "persistence",
+}
+
+def _tid_to_tactic(tid):
+    """Return a tactic label for a technique ID, or None if unknown."""
+    base = tid.split(".")[0]
+    return _TACTIC_MAP.get(base)
+
+# Backfill attack_technique_ids, mitre_tactics, and iocs for sources that don't
+# populate them (RSS, Slack, Splunk set these to [] / {} in their item schema).
+# This runs after extract_mitre() so mitre results are already in i["mitre"].
+for i in items:
+    # attack_technique_ids: derive from already-computed i["mitre"] when empty
+    if not i.get("attack_technique_ids"):
+        i["attack_technique_ids"] = [tid for tid, _name in i.get("mitre", [])]
+
+    # mitre_tactics: derive from attack_technique_ids when empty
+    if not i.get("mitre_tactics"):
+        tactics = []
+        for tid in i.get("attack_technique_ids", []):
+            tac = _tid_to_tactic(tid)
+            if tac and tac not in tactics:
+                tactics.append(tac)
+        i["mitre_tactics"] = tactics
+
+    # iocs: run local extraction against title + description when empty.
+    # Normalise to the canonical schema {cve, ipv4, domain, url, md5, sha1, sha256}
+    # that validate.py and the agent layer expect.  The local extract_iocs() uses a
+    # different key set (cves/ips/hashes) — convert here, leaving the HTML rendering
+    # code (which uses the old keys) untouched.
+    if not i.get("iocs"):
+        text = (i.get("description") or "") + " " + (i.get("name") or "")
+        raw = extract_iocs(text)
+        # Classify hashes by length: 32=md5, 40=sha1, 64=sha256
+        md5s, sha1s, sha256s = [], [], []
+        for h in raw.get("hashes", []):
+            n = len(h)
+            if n == 32:   md5s.append(h)
+            elif n == 40: sha1s.append(h)
+            elif n == 64: sha256s.append(h)
+        i["iocs"] = {
+            "cve":    raw.get("cves", []),
+            "ipv4":   raw.get("ips", []),
+            "domain": raw.get("domains", []),
+            "url":    [],
+            "md5":    md5s,
+            "sha1":   sha1s,
+            "sha256": sha256s,
+        }
+
 def talking_points(item, containment_narrative_map):
     """Generate 3-4 customer/analyst talking points from item metadata."""
     points = []

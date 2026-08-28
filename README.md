@@ -160,6 +160,8 @@ The built `threat-watch.html` is a single self-contained file with four preset v
 
 Each cloud threat cluster card has a hover popover with key points, extracted IOCs, MITRE ATT&CK mappings, and talking points.
 
+> **IOC and ATT&CK extraction quality depends on source richness.** RSS feed items typically contain a headline and a short summary — regex extraction against that text will rarely surface IPs, hashes, or CVEs. OpenCTI, STIX bundles, and well-structured Splunk indexes produce richer descriptions with embedded IOCs. If your RSS run shows 0 extracted IOCs and 0 ATT&CK technique IDs, that is expected behaviour — it reflects the source data, not a pipeline failure. MITRE technique IDs are also inferred from threat actor attribution (known actor → known TTP pack) when description text is thin.
+
 ### Scoring
 
 Scores are **triage priority indicators**, not analytical confidence. They tell you what to read first, not how certain we are that the threat is real.
