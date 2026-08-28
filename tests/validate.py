@@ -192,9 +192,38 @@ def validate_json(path):
                 errors += 1
                 break
 
+    # Verify late-IOC fields are present on cluster reports
+    report_ioc_errors = 0
+    for cluster in clusters:
+        for report in cluster.get("reports", []):
+            for field in ("intel_published", "iocs", "attack_technique_ids", "description"):
+                if field not in report:
+                    report_ioc_errors += 1
+    if report_ioc_errors:
+        print(f"  FAIL: {report_ioc_errors} cluster reports missing late-IOC fields (intel_published/iocs/attack_technique_ids/description)")
+        errors += 1
+    else:
+        total_reports = sum(len(c.get("reports", [])) for c in clusters)
+        if total_reports:
+            print(f"  PASS: late-IOC fields present on all {total_reports} cluster reports")
+
+    # Same check for last_24h reports
+    last24_ioc_errors = 0
+    for report in d.get("last_24h", {}).get("reports", []):
+        for field in ("intel_published", "iocs", "attack_technique_ids"):
+            if field not in report:
+                last24_ioc_errors += 1
+    if last24_ioc_errors:
+        print(f"  FAIL: {last24_ioc_errors} last_24h reports missing late-IOC fields")
+        errors += 1
+    else:
+        n24 = len(d.get("last_24h", {}).get("reports", []))
+        if n24:
+            print(f"  PASS: late-IOC fields present on all {n24} last_24h reports")
+
     if not errors:
         print(f"  PASS: JSON schema valid")
-        print(f"  INFO: {len(clusters)} clusters | {d.get('last_24h',{}).get('count',0)} last-24h reports")
+    print(f"  INFO: {len(clusters)} clusters | {d.get('last_24h',{}).get('count',0)} last-24h reports")
 
     return errors
 
