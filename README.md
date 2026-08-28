@@ -249,6 +249,34 @@ The JSON export is the single canonical dataset consumed by all downstream agent
 }
 ```
 
+### CTI lifecycle fields (per report in `cloud_clusters` and `last_24h`)
+
+| Field | Type | Source | Notes |
+|-------|------|--------|-------|
+| `id` | string | all | Unique report ID; stable across pipeline runs |
+| `name` | string | all | Report title |
+| `url` | string | all | Canonical source URL |
+| `publisher` | string | all | Derived from URL domain |
+| `intel_published` | ISO string | all | Original publication date (from sidecar or URL; falls back to ingest time) |
+| `confidence` | 0–100 | all | Publisher confidence; RSS uses publisher-tier default; OpenCTI uses native field |
+| `labels` | list | all | Cloud/AI sub-tags for surface classification |
+| `description` | string | all | Full description where available; RSS may be title-only |
+| `iocs` | dict | all | Extracted IOCs — `{cve, ipv4, domain, url, md5, sha1, sha256}`. Quality varies by source richness. |
+| `attack_technique_ids` | list | all | MITRE ATT&CK T-IDs — from STIX/OpenCTI when structured, otherwise inferred from description text and threat actor attribution |
+| `mitre_tactics` | list | all | Tactic labels derived from technique IDs |
+| `tas` | list | all | Threat actor names extracted from text or OpenCTI SDO links |
+
+**Fields not yet in the canonical schema** — gaps to close before production CTI use:
+
+| Missing field | Why it matters | Where to add |
+|---------------|---------------|-------------|
+| `tlp` | Controls redistribution. Without TLP WHITE/GREEN/AMBER/RED, every downstream consumer must guess or default to most restrictive. | OpenCTI/STIX sources have this natively; RSS/Slack default to TLP:WHITE |
+| `source_reliability` | Separates "Wired reported it" from "anonymous paste." Admiralty scale A–F is standard. | `sources/base.py` publisher confidence tiers are a proxy; formal field needed |
+| `ioc_first_seen` / `ioc_last_seen` | An IOC that hasn't been observed in 18 months may not be worth hunting. | Requires enrichment pass against VirusTotal or MISP |
+| `ioc_expiry` | Stale IOCs generate false positives. STIX has `valid_until`; RSS has nothing. | Can default to `intel_published + 90d` for RSS/Slack |
+| `revoked` | Vendor retracts false report. Pipeline would re-surface it on next run. | OpenCTI/STIX sources propagate this; others need manual process |
+| `analyst_disposition` | Was this acted on? False positive? Confirmed? | `prior-hunts/` captures this per hunt, but not per IOC |
+
 **Consuming the dataset from an agent:**
 
 ```bash
@@ -274,22 +302,33 @@ Each item needs:
 
 ```python
 {
-    "id":          str,           # unique identifier
+    # ── Required ──────────────────────────────────────────────────────────────
+    "id":          str,           # unique identifier — stable across runs
     "name":        str,           # title
-    "created":     datetime,      # timezone-aware UTC
-    "confidence":  int,           # 0–100
+    "created":     datetime,      # timezone-aware UTC (ingest time; overridden by pub sidecar)
+    "confidence":  int,           # 0–100 — publisher-tier default for RSS/Slack; native field for OpenCTI
     "all_labels":  list[str],     # e.g. ["cloud", "cloud-aws", "ai-llm"]
-    "labels":      list[str],     # same list (alias)
-    "publisher":   str,
+    "labels":      list[str],     # alias for all_labels (keep in sync)
+    "publisher":   str,           # derived from URL domain via PUBLISHER_MAP in base.py
     "url":         str,
-    "tas":         list[str],     # threat actor names
-    "t1_vendors":  list[str],
-    "t2_vendors":  list[str],
-    "description": str,
+    "tas":         list[str],     # threat actor names (empty list if none)
+    "t1_vendors":  list[str],     # Tier-1 vendor names mentioned
+    "t2_vendors":  list[str],     # Tier-2 vendor names mentioned
+    "description": str,           # full text where available; "" acceptable but reduces extraction quality
+    # ── Backfilled by build.py if not set by source ───────────────────────────
+    "attack_technique_ids": list[str],  # MITRE T-IDs, e.g. ["T1566", "T1078"]
+    "mitre_tactics":        list[str],  # tactic labels, e.g. ["initial-access"]
+    "iocs":                 dict,       # {cve: [...], ipv4: [...], domain: [...], url: [...],
+                                        #  md5: [...], sha1: [...], sha256: [...]}
+    # ── Strongly recommended (required for TLP-aware distribution) ────────────
+    # "tlp":          str,         # TLP:WHITE / GREEN / AMBER / RED  (default: WHITE for RSS/Slack)
+    # "intel_published": str,      # ISO datetime — when intel was originally published
 }
 ```
 
-`build.py`, all agents, and all commands work without modification.
+`build.py` backfills `attack_technique_ids`, `mitre_tactics`, and `iocs` from the description text
+if the source leaves them empty. Higher-quality sources (OpenCTI, STIX) should populate them
+directly for better fidelity. `build.py`, all agents, and all commands work without modification.
 
 ---
 

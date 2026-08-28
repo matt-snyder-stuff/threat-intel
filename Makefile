@@ -162,22 +162,7 @@ docker-serve:
 opencti-up:
 	docker compose -f tests/docker-compose.opencti.yml up -d
 	@echo "Waiting for OpenCTI to be ready..."
-	@python3 -c "
-import urllib.request, json, time, sys
-token = '8ac2c1f9-0b3d-4f24-a621-4c9b1f2e5a37'
-deadline = time.time() + 300
-while time.time() < deadline:
-    try:
-        req = urllib.request.Request('http://localhost:8080/graphql',
-            data=b'{\"query\":\"{ about { version } }\"}',
-            headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'})
-        d = json.loads(urllib.request.urlopen(req, timeout=5).read())
-        if d.get('data', {}).get('about', {}).get('version'):
-            print('  Ready:', d['data']['about']['version']); sys.exit(0)
-    except Exception: pass
-    sys.stdout.write('.'); sys.stdout.flush(); time.sleep(5)
-print('Timed out'); sys.exit(1)
-"
+	@python3 tests/wait_opencti.py
 
 opencti-seed:
 	python3 tests/seed_opencti.py

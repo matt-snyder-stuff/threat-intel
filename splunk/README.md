@@ -67,7 +67,7 @@ Run the pipeline with the `splunk` source, which requires these environment vari
 
 ```bash
 SPLUNK_URL=https://your-splunk:8089
-SPLUNK_TOKEN=<HEC or REST token>
+SPLUNK_TOKEN=<REST API token>   # Settings → Tokens in Splunk Web; NOT an HEC token (HEC is write-only)
 # For REST-based writes:
 SPLUNK_USERNAME=admin
 SPLUNK_PASSWORD=changeme
