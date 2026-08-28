@@ -1,0 +1,46 @@
+{
+  "hunt_id": "HUNT-20260724-volt-typhoon-lotl",
+  "date": "2026-07-24",
+  "hunt_type": "hypothesis",
+  "focus": "Volt Typhoon living-off-the-land in OT-adjacent network segments using certutil, ntdsutil, wmic",
+  "signal_source": "cloud_cluster: 'Volt Typhoon Pre-Positions in US Critical Infrastructure via Living-off-the-Land' (reach_score=91, conf=91)",
+  "hypotheses": [
+    {
+      "id": "H1",
+      "actor": "Volt Typhoon",
+      "behavior": "T1218 - System Binary Proxy Execution (certutil, wmic for C2 and recon)",
+      "location": "endpoint",
+      "evidence_field": "index=endpoint sourcetype=WinEventLog:Microsoft-Windows-Sysmon/Operational EventCode=1 (CommandLine=*certutil* OR CommandLine=*wmic*)",
+      "outcome": "negative_data_present",
+      "data_sources_present": true,
+      "finding_summary": "certutil and wmic process creation events present in index. 847 certutil events found across 90-day window — all mapped to expected IT patch management scripts (certutil -hashfile for integrity checks). No anomalous parent processes, no network connections following certutil execution. Documented as FP pattern."
+    },
+    {
+      "id": "H2",
+      "actor": "Volt Typhoon",
+      "behavior": "T1049 - System Network Connections Discovery (ntdsutil for AD recon, unusual outbound from domain controllers)",
+      "location": "endpoint",
+      "evidence_field": "index=endpoint sourcetype=WinEventLog:Security EventCode=4688 NewProcessName=*ntdsutil* dest_category=domain_controller",
+      "outcome": "negative_data_present",
+      "data_sources_present": true,
+      "finding_summary": "2 ntdsutil executions in 90-day window. Both traced to a scheduled domain backup task run by svc-adbackup at 02:00 on the first Sunday of each month. No anomalous execution times or parent processes."
+    },
+    {
+      "id": "H3",
+      "actor": "Volt Typhoon",
+      "behavior": "T1071.001 - Application Layer Protocol: Web Protocols (C2 over HTTPS to 192.0.2.77)",
+      "location": "network",
+      "evidence_field": "index=network sourcetype=stream:http dest_ip=192.0.2.77",
+      "outcome": "negative_data_present",
+      "data_sources_present": true,
+      "finding_summary": "No connections to 192.0.2.77 in any network index in the 90-day window. IP also not present in proxy, DNS, or firewall logs. Negative result is meaningful — proxy and network logs are healthy (verified via 30-day event count)."
+    }
+  ],
+  "mitre_techniques": ["T1218", "T1049", "T1071.001", "T1078"],
+  "confirmed_findings": 0,
+  "detection_artifacts": [],
+  "key_fp_notes": "certutil -hashfile executions are routine in this environment from the SCCM patch pipeline. The parent process is always C:\\Windows\\System32\\svchost.exe. Any certutil execution with a different parent or with -urlcache/-decode flags should be treated as suspicious. svc-adbackup running ntdsutil on Sunday mornings is expected and documented.",
+  "re_hunt_trigger": "Re-run if: (1) new Volt Typhoon IOC infrastructure is published, (2) any certutil execution appears with -urlcache or -decode flags, (3) SCADA-adjacent network segment logging is enabled (see Gap H3 note).",
+  "queries_run": 11,
+  "dataset_generated_at": "2026-07-24T06:00:00Z"
+}

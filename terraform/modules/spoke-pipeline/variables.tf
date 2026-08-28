@@ -48,3 +48,9 @@ variable "opencti_url" {
   type        = string
   default     = ""
 }
+
+variable "alarm_sns_arn" {
+  description = "SNS topic ARN to notify on pipeline failure. Empty = alarm created but no notification sent."
+  type        = string
+  default     = ""
+}

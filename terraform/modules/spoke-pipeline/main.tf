@@ -278,3 +278,31 @@ resource "aws_cloudwatch_log_group" "pipeline" {
   name              = "/threat-intel/${var.name_prefix}/pipeline"
   retention_in_days = 30
 }
+
+# ── CloudWatch alarm — EventBridge pipeline failure ───────────────────────────
+# SSM Run Command reports FAILED state when the shell script exits non-zero.
+# The alarm fires after a single failure so the on-call team is notified before
+# the next scheduled run overwrites state.
+
+resource "aws_cloudwatch_metric_alarm" "pipeline_failure" {
+  alarm_name          = "${var.name_prefix}-pipeline-failure"
+  alarm_description   = "Threat intel pipeline run failed (SSM Run Command reported non-zero exit)"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = "StatusCheckFailed"
+  namespace           = "AWS/SSM-RunCommand"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 1
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    InstanceId   = aws_instance.pipeline.id
+    DocumentName = "AWS-RunShellScript"
+  }
+
+  alarm_actions = var.alarm_sns_arn != "" ? [var.alarm_sns_arn] : []
+  ok_actions    = var.alarm_sns_arn != "" ? [var.alarm_sns_arn] : []
+
+  tags = { Name = "${var.name_prefix}-pipeline-failure-alarm" }
+}

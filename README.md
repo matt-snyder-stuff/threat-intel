@@ -180,6 +180,7 @@ Drop these into your `.claude/agents/` directory to use them with [Claude Code](
 | [`digest`](.claude/agents/digest.md) | Reads `threat-watch-data.json`, formats the last 24h of cloud/AI reports, posts to Slack |
 | [`threat-hunter`](.claude/agents/threat-hunter.md) | Extracts the top 3 hunt-worthy signals and generates queries in Splunk SPL, KQL (Sentinel/Defender), and Sigma YAML — no live SIEM needed |
 | [`splunk-hunter`](.claude/agents/splunk-hunter.md) | Like `threat-hunter` but executes the SPL live against Splunk via the REST API and reports actual findings (COUNT-FIRST enforced) |
+| [`late-ioc-matcher`](.claude/agents/late-ioc-matcher.md) | **Retroactive IOC matching.** Searches Splunk historical indexes (default 90d) for IOCs that arrived late — after a device may already have been cleaned. Correlates device notable event history, computes the latency gap (days between device exposure and intel publish date), and classifies each match: high confidence / possible / late intel only / no exposure. Surfaces detection gaps where alerts should have fired but didn't. |
 | [`ioc-enricher`](.claude/agents/ioc-enricher.md) | Enriches IPs, domains, and CVEs via ipapi.co, crt.sh, rdap.org, and the NVD — no API keys required |
 
 The standalone [`agent/digest-agent.md`](agent/digest-agent.md) works without Claude Code — it queries OpenCTI directly and can be wired to any Claude agent runtime.
@@ -190,6 +191,7 @@ The standalone [`agent/digest-agent.md`](agent/digest-agent.md) works without Cl
 |---------|-------------|
 | `/peak-hunt [type] [focus]` | Full PEAK lifecycle hunt — plan, execute, detect, report, index. Type: `hypothesis` \| `baseline` \| `math` |
 | `/rebuild [source]` | Fetch from a source and regenerate the dashboard (`opencti` \| `splunk` \| `slack` \| `rss` \| `stix`) |
+| `/check-pipeline` | Health check: dataset freshness, source connectivity, environment completeness, prior-hunts status |
 | `/splunk-ingest [spl]` | Pull threat intel from Splunk via the REST API — optionally pass a custom SPL query |
 | `/hunt [focus]` | Quick offline hunt: generate SPL + KQL + Sigma queries from the current dataset |
 | `/hunt-live [focus]` | Generate and execute SPL queries live against Splunk; returns actual findings |
@@ -287,6 +289,7 @@ Each item needs:
 
 ```
 run.py                         # CLI: --source {splunk,opencti,slack,rss,stix} [--build]
+check_pipeline.py              # standalone pipeline health check (see make status)
 environment.md                 # YOUR DEPLOYMENT — update Splunk indexes, sourcetypes, fields
 prior-hunts/                   # auto-written hunt index — one JSON per /peak-hunt run
 sources/
@@ -298,6 +301,9 @@ sources/
 └── stix.py                    # STIX 2.x / TAXII 2.x source (zero extra dependencies)
 generator/
 └── build.py                   # aggregation + scoring → HTML + JSON  ← do not modify
+splunk/
+└── threat_watch/              # Splunk 9.x app — KV Store ingestion, dashboard, hunt alerts
+    └── (see splunk/README.md for install instructions)
 agent/
 └── digest-agent.md            # standalone agent (no Claude Code needed)
 .claude/
@@ -306,10 +312,12 @@ agent/
 │   ├── digest.md
 │   ├── threat-hunter.md       # offline: generates SPL + KQL + Sigma
 │   ├── splunk-hunter.md       # live: executes SPL, returns findings (COUNT-FIRST)
+│   ├── late-ioc-matcher.md    # retroactive IOC matching — finds exposure after device is cleaned
 │   └── ioc-enricher.md
 └── commands/                  # Claude Code slash commands
     ├── peak-hunt.md           # /peak-hunt — full PEAK lifecycle
     ├── rebuild.md
+    ├── check-pipeline.md      # /check-pipeline — health check (freshness, connectivity, env)
     ├── splunk-ingest.md       # pull threat intel from Splunk
     ├── hunt.md
     ├── hunt-live.md           # hunt + execute live against Splunk
@@ -318,6 +326,36 @@ agent/
 .env.example                   # copy to .env, fill in your values
 CLAUDE.md                      # project guide for Claude Code
 ```
+
+---
+
+## Splunk App
+
+The `splunk/threat_watch/` directory contains a Splunk 9.x app that ingests the pipeline's JSON dataset into KV Store, surfaces intel in a unified dashboard, and ships pre-built hunt searches and alert rules.
+
+See **[splunk/README.md](splunk/README.md)** for installation, data ingestion, and dashboard usage.
+
+Quick install:
+
+```bash
+cp -r splunk/threat_watch "$SPLUNK_HOME/etc/apps/"
+"$SPLUNK_HOME/bin/splunk" restart
+```
+
+The app uses four KV Store collections: `threat_clusters`, `threat_actors`, `ioc_watchlist`, and `hunt_results`. The included `threat_intel_ingest` saved search imports from the pipeline JSON; configure `THREAT_WATCH_JSON_PATH` in `savedsearches.conf` to point at your output file.
+
+---
+
+## Pipeline health check
+
+```bash
+make status           # uses .env if present
+python3 check_pipeline.py    # or run directly
+```
+
+Or from Claude Code: `/check-pipeline`
+
+Checks: dataset freshness · OpenCTI connectivity · Splunk connectivity · Slack auth · `environment.md` completeness · prior-hunts record count. Read-only, no data modified. Exits with code 1 on any FAIL.
 
 ---
 

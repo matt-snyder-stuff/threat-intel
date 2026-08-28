@@ -1,4 +1,4 @@
-.PHONY: help run-rss run-opencti run-slack run-splunk run-stix build serve clean \
+.PHONY: help run-rss run-opencti run-slack run-splunk run-stix build serve clean status \
         docker-rss docker-opencti docker-slack docker-splunk docker-stix docker-serve \
         test test-docker \
         opencti-up opencti-seed opencti-down \
@@ -34,11 +34,19 @@ help:
 	@echo "  make opencti-seed   Load 10 demo threat reports into running OpenCTI"
 	@echo "  make opencti-down   Stop and remove all OpenCTI containers + volumes"
 	@echo ""
+	@echo "Health check:"
+	@echo "  make status           Dataset freshness, source connectivity, env completeness"
+	@echo ""
 	@echo "Terraform (AWS + Aviatrix):"
 	@echo "  make tf-init          terraform init"
 	@echo "  make tf-plan          terraform plan"
 	@echo "  make tf-apply         terraform apply"
 	@echo "  make tf-destroy       terraform destroy"
+
+# ── Health check ──────────────────────────────────────────────────────────────
+
+status:
+	@[ -f .env ] && set -a && . ./.env && set +a; python3 check_pipeline.py
 
 # ── Laptop targets ─────────────────────────────────────────────────────────────
 # Load .env if present, then run. Works with or without direnv.

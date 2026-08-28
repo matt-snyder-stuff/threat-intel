@@ -102,6 +102,8 @@ module "spoke_pipeline" {
   pipeline_schedule = var.pipeline_schedule
   pipeline_git_ref  = var.pipeline_git_ref
   opencti_url       = local.opencti_url
+  alarm_sns_arn     = var.alarm_sns_arn
+
   pipeline_env_ssm = merge(
     var.pipeline_env_vars,
     # When BYO OpenCTI, inject the token from SSM. The URL goes via opencti_url (plain env var).

@@ -44,7 +44,28 @@ Load the dataset and extract all IOCs that have a known or inferable active wind
 
 ```python
 import json, os, sys
-sys.path.insert(0, os.getcwd())
+
+# Locate the repo root by walking up from this file's directory until
+# sources/base.py is found. Falls back to CWD if no ancestor matches —
+# this handles agent invocation from any working directory.
+def _find_repo_root():
+    # Try the directory containing this agent file first
+    here = os.path.dirname(os.path.abspath(__file__))
+    for candidate in [here] + [here] + [os.path.join(here, *(['..'] * i)) for i in range(1, 6)]:
+        candidate = os.path.normpath(candidate)
+        if os.path.isfile(os.path.join(candidate, "sources", "base.py")):
+            return candidate
+    # Fall back: walk up from CWD
+    cwd = os.getcwd()
+    for candidate in [cwd] + [os.path.normpath(os.path.join(cwd, *(['..'] * i))) for i in range(1, 6)]:
+        if os.path.isfile(os.path.join(candidate, "sources", "base.py")):
+            return candidate
+    return cwd  # last resort
+
+repo_root = _find_repo_root()
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
 from sources.base import extract_iocs, refang
 
 # Load dataset

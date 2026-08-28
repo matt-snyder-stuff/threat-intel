@@ -1,0 +1,53 @@
+{
+  "hunt_id": "HUNT-20260803-github-actions-supply-chain",
+  "date": "2026-08-03",
+  "hunt_type": "hypothesis",
+  "focus": "GitHub Actions dependency confusion via compromised third-party workflow steps (CVE-2025-30066)",
+  "signal_source": "cloud_cluster: 'GitHub Actions Dependency Confusion Attack via Compromised Workflow Steps' (reach_score=87, conf=87)",
+  "hypotheses": [
+    {
+      "id": "H1",
+      "actor": "Unknown - supply chain compromise",
+      "behavior": "T1195.001 - Supply Chain Compromise: Compromise Software Dependencies (malicious GitHub Actions step executing during CI)",
+      "location": "cicd",
+      "evidence_field": "index=cicd sourcetype=github_actions workflow_conclusion=failure OR process_name=node CommandLine=*actions-cdn*",
+      "outcome": "inconclusive_data_absent",
+      "data_sources_present": false,
+      "data_gap": "No GitHub Actions runner logs ingested into Splunk. The CI/CD team uses GitHub-hosted runners — stdout/stderr from workflow steps is not forwarded to any SIEM. Cannot determine if actions-cdn[.]io was contacted during any workflow run.",
+      "recommended_fix": "Enable GitHub audit log streaming to Splunk via the GitHub Enterprise audit log streaming API. At minimum, ingest workflow_run webhook events to capture conclusion, triggering actor, and head_sha."
+    },
+    {
+      "id": "H2",
+      "actor": "Unknown - supply chain compromise",
+      "behavior": "T1041 - Exfiltration Over C2 Channel (post-compromise exfil from CI runner to actions-cdn[.]io)",
+      "location": "network",
+      "evidence_field": "index=network sourcetype=palo:traffic dest=*actions-cdn* OR dest_ip IN (lookup for actions-cdn.io resolution)",
+      "outcome": "inconclusive_data_absent",
+      "data_sources_present": false,
+      "data_gap": "GitHub-hosted runners egress from GitHub's IP ranges (140.82.0.0/16, 192.30.0.0/18), not from corporate network — these connections are invisible to the corporate proxy and firewall. Self-hosted runners on 10.0.5.0/24 do transit corporate egress — no connections to actions-cdn[.]io found from that subnet in 30-day window, but GitHub-hosted runner traffic is unobservable.",
+      "recommended_fix": "Migrate high-sensitivity pipelines (secret-touching, production deploy) to self-hosted runners so their egress transits corporate network monitoring."
+    },
+    {
+      "id": "H3",
+      "actor": "Unknown - supply chain compromise",
+      "behavior": "T1552.001 - Unsecured Credentials: Credentials In Files (secrets exposed in workflow logs or artifacts)",
+      "location": "cicd",
+      "evidence_field": "index=cicd sourcetype=github_audit action=workflows.artifact.download actor!=svc-cicd",
+      "outcome": "inconclusive_data_absent",
+      "data_sources_present": false,
+      "data_gap": "Same as H1 — GitHub audit log not streaming to Splunk."
+    }
+  ],
+  "mitre_techniques": ["T1195.001", "T1041", "T1552.001"],
+  "confirmed_findings": 0,
+  "detection_artifacts": [],
+  "key_fp_notes": "No FP notes — hunt was inconclusive due to telemetry gaps, not data reviewed.",
+  "re_hunt_trigger": "Re-run immediately after GitHub audit log streaming is enabled. Also re-run if self-hosted runner logs begin appearing in index=cicd.",
+  "escalation_actions_taken": [
+    "Filed platform-eng ticket PE-1193: Enable GitHub Enterprise audit log streaming to Splunk HEC",
+    "Filed platform-eng ticket PE-1194: Evaluate migration of deploy workflows to self-hosted runners",
+    "Manually reviewed .github/workflows/ in top-5 repos for references to actions-cdn[.]io — none found; does not rule out transitive dependency use"
+  ],
+  "queries_run": 6,
+  "dataset_generated_at": "2026-08-03T06:00:00Z"
+}

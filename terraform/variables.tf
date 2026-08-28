@@ -159,6 +159,12 @@ variable "data_bucket_name" {
   type        = string
 }
 
+variable "alarm_sns_arn" {
+  description = "SNS topic ARN to receive pipeline failure notifications. Empty = alarm is created but no notification is sent."
+  type        = string
+  default     = ""
+}
+
 variable "key_pair_name" {
   description = "EC2 key pair name for emergency SSH access (optional — SSM Session Manager is preferred)."
   type        = string

@@ -79,6 +79,7 @@ source .env
 | `/rebuild [source]` | Fetch from a source and regenerate the dashboard (`splunk` \| `opencti` \| `slack` \| `rss` \| `stix`). |
 | `/splunk-ingest [spl]` | Pull threat intel from Splunk via REST API. Optionally pass a custom SPL query. |
 | `/peak-hunt [type] [focus]` | Full-lifecycle PEAK hunt — plan, execute, detect, report. Type: `hypothesis` \| `baseline` \| `math`. |
+| `/check-pipeline` | Health check: dataset freshness, source connectivity, environment completeness, prior-hunts count. Read-only. |
 | `/hunt [focus]` | Quick offline hunt: generate SPL + KQL + Sigma queries from the current dataset. |
 | `/hunt-live [focus]` | Generate and execute SPL queries live against Splunk; returns actual findings. |
 | `/enrich [ioc ...]` | Enrich IOCs from the dataset (or a provided list) via public APIs. |
@@ -94,6 +95,7 @@ source .env
 | `digest` | Posts a daily summary of the last 24h of cloud/AI reports to Slack. |
 | `threat-hunter` | Generates hunt queries (SPL, KQL, Sigma) from the top signals — no live SIEM needed. |
 | `splunk-hunter` | Executes SPL hunt queries live against Splunk via REST API; returns actual findings. |
+| `late-ioc-matcher` | Retroactive IOC matching for threat intel that arrived after a device was cleaned. Searches Splunk history (default 90d), correlates against notable events, computes the latency gap, and classifies each match. Needs `SPLUNK_URL` + auth + `THREAT_WATCH_FILE` or `THREAT_WATCH_URL`. |
 | `ioc-enricher` | Enriches IPs, domains, CVEs via ipapi.co, crt.sh, rdap.org, NVD. No API keys needed. |
 
 ---
@@ -110,6 +112,7 @@ source .env
 
 ```
 run.py                        # top-level CLI: --source, --build
+check_pipeline.py             # standalone health check (make status / /check-pipeline)
 environment.md                # YOUR DEPLOYMENT — update indexes, sourcetypes, key fields
 prior-hunts/                  # auto-written hunt index — one JSON per /peak-hunt run
 sources/
@@ -121,6 +124,7 @@ sources/
 └── stix.py                   # STIX 2.x / TAXII 2.x source (zero extra dependencies)
 generator/
 └── build.py                  # aggregation + scoring → HTML + JSON (do not modify)
+splunk/threat_watch/          # Splunk 9.x app — KV Store, dashboard, hunt alerts (see splunk/README.md)
 agent/
 └── digest-agent.md           # standalone agent definition (use without Claude Code)
 .claude/
@@ -129,10 +133,12 @@ agent/
 │   ├── digest.md             # Claude Code digest agent
 │   ├── threat-hunter.md      # offline hunt query generation (SPL + KQL + Sigma)
 │   ├── splunk-hunter.md      # live Splunk hunt — executes SPL, returns findings
+│   ├── late-ioc-matcher.md   # retroactive IOC matching — exposure after device is cleaned
 │   └── ioc-enricher.md       # public API enrichment agent
 └── commands/
     ├── peak-hunt.md          # /peak-hunt command (full PEAK lifecycle)
     ├── rebuild.md            # /rebuild command
+    ├── check-pipeline.md     # /check-pipeline — health check (freshness, connectivity, env)
     ├── splunk-ingest.md      # /splunk-ingest — pull from Splunk REST API
     ├── hunt.md               # /hunt command (offline, quick)
     ├── hunt-live.md          # /hunt-live — execute live against Splunk

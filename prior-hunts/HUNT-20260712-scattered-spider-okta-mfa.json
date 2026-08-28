@@ -1,0 +1,53 @@
+{
+  "hunt_id": "HUNT-20260712-scattered-spider-okta-mfa",
+  "date": "2026-07-12",
+  "hunt_type": "hypothesis",
+  "focus": "Scattered Spider / UNC3944 MFA push bombing against Okta and Salesforce admin accounts",
+  "signal_source": "cloud_cluster: 'Scattered Spider Targets Okta and Salesforce via MFA Push Bombing' (reach_score=82, conf=85)",
+  "hypotheses": [
+    {
+      "id": "H1",
+      "actor": "Scattered Spider",
+      "behavior": "T1621 - Multi-Factor Authentication Request Generation (MFA push bombing)",
+      "location": "identity",
+      "evidence_field": "index=okta sourcetype=OktaIM2:log eventType=user.mfa.attempt outcome.result=FAILURE",
+      "outcome": "confirmed_finding",
+      "data_sources_present": true,
+      "finding_summary": "3 accounts received >10 MFA push requests within a 4-minute window from IP 203.0.113.12. Two accounts belong to Salesforce admin group. Timing matches the threat report's infrastructure IPs.",
+      "affected_hosts": ["okta-tenant"],
+      "affected_users": ["svc-sfdc-admin@corp.example", "it-admin-02@corp.example"],
+      "iocs_confirmed": ["203.0.113.12", "203.0.113.44"],
+      "latency_gap_days": null
+    },
+    {
+      "id": "H2",
+      "actor": "Scattered Spider",
+      "behavior": "T1598.002 - Phishing for Information: Spearphishing Attachment (SIM swap follow-on)",
+      "location": "email",
+      "evidence_field": "index=email sourcetype=o365:management:activity Operation=Create AND attachments=*",
+      "outcome": "negative_data_present",
+      "data_sources_present": true,
+      "finding_summary": "No spearphishing attachment activity detected in 7-day window for the two flagged accounts. O365 audit logs present and healthy."
+    }
+  ],
+  "mitre_techniques": ["T1621", "T1598.002", "T1078"],
+  "confirmed_findings": 1,
+  "detection_artifacts": [
+    {
+      "type": "splunk_correlation_search",
+      "name": "RR - Identity - MFA Push Bombing from Known Bad IP",
+      "spl": "index=okta sourcetype=OktaIM2:log eventType=user.mfa.attempt outcome.result=FAILURE earliest=-15m | stats count by src_ip, user | where count > 8 | lookup threat_iocs value as src_ip OUTPUT actor, confidence | where isnotnull(actor)",
+      "trigger": "count > 8 MFA failures from a single IP within 15 minutes, correlated against threat_iocs lookup",
+      "priority": "high"
+    }
+  ],
+  "key_fp_notes": "Okta MFA failures from 10.0.0.0/8 (VPN gateway) are expected during MFA enrollment flows — filter these before alerting. The corporate IAM bot 'svc-provisioner' triggers legitimate MFA attempts at 06:00 UTC daily.",
+  "re_hunt_trigger": "Re-run if Scattered Spider reports drop new infrastructure IPs, or after any admin account password reset event.",
+  "escalation_actions_taken": [
+    "Opened IR ticket TKT-2847: reviewed both flagged accounts — no successful logins from 203.0.113.12; MFA held",
+    "Added 203.0.113.12 and 203.0.113.44 to network block list",
+    "Notified Okta admin team to enforce number-matching MFA for all admin-group accounts"
+  ],
+  "queries_run": 8,
+  "dataset_generated_at": "2026-07-12T06:00:00Z"
+}

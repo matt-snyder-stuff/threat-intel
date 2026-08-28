@@ -12,6 +12,9 @@ data/*.html
 /tmp/threat-watch-mockup.html
 /tmp/threat-watch-data.json
 
+# Generated runtime outputs — not committed
+demo/sec1390/outputs/
+
 # Environment
 .env
 *.env

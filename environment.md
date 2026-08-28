@@ -20,7 +20,12 @@ index is marked inconclusive before any query runs.
 
 ## Available Indexes
 
-Update the Status column to reflect your actual deployment.
+Update the **Status** column after running the [quick verification queries](#quick-verification-spl) below.
+
+- **Active** — index exists and has recent data (within 7d)
+- **Inactive** — index exists but has no recent data (check forwarding)
+- **Absent** — index does not exist in this deployment
+- **Unknown** — not yet verified
 
 | Index | Sourcetype(s) | What it contains | Status |
 |-------|--------------|-----------------|--------|
@@ -30,6 +35,34 @@ Update the Status column to reflect your actual deployment.
 | `identity` | `WinEventLog:Security`, `azure:activedirectory`, `okta:im2` | Authentication events, MFA, group changes, OAuth token grants | Unknown — update |
 | `email` | `ms:o365:email`, `proofpoint:maillog`, `mimecast:email` | Inbound/outbound email, attachment hashes, sender/recipient | Unknown — update |
 | `threat_intel` | *(varies by source)* | Imported threat intel reports — fed by this pipeline | Unknown — update |
+
+### Quick verification SPL
+
+Run these once in Splunk Search to populate the table above. Each query is safe (count-only, 7d window).
+
+**All indexes at once — which ones exist and have recent data:**
+
+```spl
+| eventcount summarize=false index=endpoint,network,cloud,identity,email,threat_intel earliest=-7d
+| eval status=if(count>0,"Active","Inactive — check forwarding")
+| table index, count, status
+```
+
+**Discover actual sourcetypes per index — fill in your local names:**
+
+```spl
+| tstats count WHERE index=* earliest=-7d BY index, sourcetype
+| search index IN (endpoint, network, cloud, identity, email, threat_intel)
+| sort index sourcetype
+```
+
+**Single-index spot check (replace INDEX_NAME):**
+
+```spl
+index=INDEX_NAME earliest=-24h | head 1 | table _time, sourcetype, host
+```
+
+After running, update the Status column and replace the generic sourcetype lists with your actual ones (e.g. `crowdstrike:fdr:json` instead of `WinEventLog:Sysmon`).
 
 ---
 
