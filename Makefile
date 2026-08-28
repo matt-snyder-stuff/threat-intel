@@ -49,28 +49,42 @@ status:
 	@[ -f .env ] && set -a && . ./.env && set +a; python3 check_pipeline.py
 
 # ── Laptop targets ─────────────────────────────────────────────────────────────
-# Load .env if present, then run. Works with or without direnv.
+# Outputs go to ./data/ so `make serve` works immediately after any run-* target
+# without setting env vars. Docker uses the same ./data mount — both are aligned.
+# Override any path with PKL_OUT, HTML_OUT, JSON_OUT, etc. if needed.
+
+DATA_ENV = PKL_OUT=data/tw-30d-processed.pkl \
+           PUB_SIDECAR=data/tw-30d-published.json \
+           HTML_OUT=data/threat-watch.html \
+           JSON_OUT=data/threat-watch-data.json
 
 run-rss:
-	@[ -f .env ] && set -a && . ./.env && set +a; python3 run.py --source rss --build
+	@mkdir -p data
+	@[ -f .env ] && set -a && . ./.env && set +a; $(DATA_ENV) python3 run.py --source rss --build
 
 run-opencti:
-	@[ -f .env ] && set -a && . ./.env && set +a; python3 run.py --source opencti --build
+	@mkdir -p data
+	@[ -f .env ] && set -a && . ./.env && set +a; $(DATA_ENV) python3 run.py --source opencti --build
 
 run-slack:
-	@[ -f .env ] && set -a && . ./.env && set +a; python3 run.py --source slack --build
+	@mkdir -p data
+	@[ -f .env ] && set -a && . ./.env && set +a; $(DATA_ENV) python3 run.py --source slack --build
 
 run-splunk:
-	@[ -f .env ] && set -a && . ./.env && set +a; python3 run.py --source splunk --build
+	@mkdir -p data
+	@[ -f .env ] && set -a && . ./.env && set +a; $(DATA_ENV) python3 run.py --source splunk --build
 
 run-stix:
-	@[ -f .env ] && set -a && . ./.env && set +a; python3 run.py --source stix --build
+	@mkdir -p data
+	@[ -f .env ] && set -a && . ./.env && set +a; $(DATA_ENV) python3 run.py --source stix --build
 
 build:
-	@[ -f .env ] && set -a && . ./.env && set +a; python3 generator/build.py
+	@mkdir -p data
+	@[ -f .env ] && set -a && . ./.env && set +a; $(DATA_ENV) python3 generator/build.py
 
 serve:
-	@echo "Serving at http://localhost:8080"
+	@echo "Serving at http://localhost:8080 — open threat-watch.html in your browser"
+	@[ -f data/threat-watch.html ] || (echo "ERROR: data/threat-watch.html not found — run make run-rss (or another source) first" && exit 1)
 	@python3 -m http.server 8080 --directory data
 
 clean:

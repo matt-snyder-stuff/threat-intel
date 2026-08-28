@@ -127,7 +127,7 @@ All five sources write the same pickle schema. `build.py` never knows which one 
 
 | Source | How it works | Required env vars |
 |--------|-------------|-------------------|
-| `splunk` | Runs a search against Splunk via the REST API (job submit → poll → results). Maps result fields to the item schema; auto-detects labels and threat actors from text. Works with Splunk Cloud and on-prem. | `SPLUNK_URL` + `SPLUNK_TOKEN` |
+| `splunk` | Runs a search against Splunk via the **REST API** (job submit → poll → results). `SPLUNK_TOKEN` is a **Splunk REST API token** (Settings → Tokens in Splunk Web, not an HEC token — HEC is write-only and cannot run searches). Maps result fields to the item schema; auto-detects labels and threat actors from text. Works with Splunk Cloud and on-prem. | `SPLUNK_URL` + `SPLUNK_TOKEN` (or `SPLUNK_USERNAME` + `SPLUNK_PASSWORD`) |
 | `opencti` | Pages through your OpenCTI instance's GraphQL API for reports labeled `cloud` or `ai`. Fetches confidence scores, SDO-linked threat actors, and a published-dates sidecar for accurate WoW math. | `OPENCTI_URL`, `OPENCTI_TOKEN` |
 | `slack` | Reads messages from a Slack channel via `conversations.history`. Treats each message as a report — URLs become the article link, auto-detects cloud/AI labels from text. | `SLACK_TOKEN`, `SLACK_CHANNEL_ID` |
 | `rss` | Fetches and parses RSS and Atom feeds directly using stdlib `urllib` + `xml.etree`. No OpenCTI, no Slack, no extra installs. | none — `RSS_FEEDS` is optional (defaults to 40+ curated feeds in `sources/feeds.py`) |
@@ -137,11 +137,13 @@ Optional env vars shared across sources:
 
 ```bash
 CUTOFF_DAYS=30                              # lookback window (default: 30)
-PKL_OUT=/tmp/tw-30d-processed.pkl           # pickle path
+PKL_OUT=/tmp/tw-30d-processed.pkl           # pickle path (local-only — see note)
 PUB_SIDECAR=/tmp/tw-30d-published.json      # published-dates sidecar
 HTML_OUT=/tmp/threat-watch.html             # dashboard output path
 JSON_OUT=/tmp/threat-watch-data.json        # JSON dataset output path
 ```
+
+> **Pickle is local-only.** The `.pkl` intermediate is written and read on the same machine in the same session. It is not a safe interchange format for untrusted data and should not be shared across trust boundaries or committed to source control. The canonical shareable artifact is `threat-watch-data.json` — all downstream agents and tools consume only that file.
 
 ---
 
@@ -160,13 +162,17 @@ Each cloud threat cluster card has a hover popover with key points, extracted IO
 
 ### Scoring
 
+Scores are **triage priority indicators**, not analytical confidence. They tell you what to read first, not how certain we are that the threat is real.
+
 **Industry Reach Index** (0–100) per cluster:
 
 ```
 reach = (unique publishers × 12) + (cloud sub-tags × 7) + (AI sub-tags × 5) + (named actors × 8)
 ```
 
-**Containment Relevance** — reports scored against patterns that network-level controls address: lateral movement, supply chain, credential reuse, container/K8s pivot, C2/exfil, ransomware. Heuristic scoring, not retroactive attribution.
+A high reach score means the story is well-corroborated across sources and involves your likely infrastructure. It does not mean the threat is targeted at you or that exploitation has been confirmed.
+
+**Containment Relevance** — reports scored against patterns that network-level controls address: lateral movement, supply chain, credential reuse, container/K8s pivot, C2/exfil, ransomware. Heuristic keyword matching against titles and descriptions, not retroactive attribution or live data correlation.
 
 ---
 
@@ -356,6 +362,43 @@ python3 check_pipeline.py    # or run directly
 Or from Claude Code: `/check-pipeline`
 
 Checks: dataset freshness · OpenCTI connectivity · Splunk connectivity · Slack auth · `environment.md` completeness · prior-hunts record count. Read-only, no data modified. Exits with code 1 on any FAIL.
+
+---
+
+## Agent governance
+
+The Claude agents in `.claude/agents/` can execute live Splunk searches when `SPLUNK_URL` and credentials are set. Before using them on production data, review the following.
+
+### What agents can and cannot do
+
+| Agent | Splunk access | Can write/modify data? |
+|-------|--------------|----------------------|
+| `threat-hunter` | None — offline only | No |
+| `digest` | None — reads local JSON | Writes Slack message |
+| `ioc-enricher` | None — public APIs only | No |
+| `splunk-hunter` | **Read** — submits searches via REST API | No |
+| `peak-hunt` | **Read** — submits searches via REST API | Writes local report files |
+| `late-ioc-matcher` | **Read** — submits searches via REST API | Writes local report files |
+
+No agent writes to Splunk, modifies alerts, or runs destructive commands.
+
+### Query safety expectations
+
+- Every live-search agent enforces **count-first discipline**: the first query always counts matching events before pulling raw records. Agents will not proceed with unbounded result pulls.
+- Searches use time-bounded `earliest=` parameters. Agents default to a maximum lookback window (90 days for `late-ioc-matcher`, 7 days for `splunk-hunter`) to prevent accidental full-index scans.
+- In any interactive Claude Code session, generated SPL is shown to you before execution. For automated/cron use, review the agent definition and set `HUNT_FOCUS` or `MATCH_IOC_FOCUS` to scope searches before scheduling.
+
+### Logging and review checkpoints
+
+- Agent runs produce a local report file (in `/tmp/` or a path you specify). These files contain the full query list, result counts, and findings — retain them for audit trails.
+- The `peak-hunt` agent writes a structured JSON record to `prior-hunts/` at closure. This serves as the institutional memory and audit log for all hunts run in this environment.
+- For production use, run agents under a **read-only Splunk role** with access limited to the indexes in `environment.md`. Do not use admin credentials.
+- Treat agent-generated SPL as a starting point, not a finished detection. Review generated correlation searches and Sigma rules before deploying to production alerting.
+
+### Cost
+
+- Splunk Cloud search jobs count against your license. The live-search agents are designed for analyst use on demand, not continuous background polling.
+- Claude API calls are made only when you invoke an agent. There is no autonomous background activity unless you explicitly schedule it with `/start-digest` or a cron job.
 
 ---
 
