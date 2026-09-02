@@ -14,6 +14,18 @@ x-pipeline-environment: &pipeline-environment
 
 services:
 
+  # ── Bundled sample source (no network or credentials) ──────────────────────
+  sample:
+    <<: *pipeline-security
+    build: .
+    profiles: [sample]
+    command: ["--source", "sample", "--build"]
+    volumes:
+      - ./data:/data
+    environment:
+      <<: *pipeline-environment
+      CUTOFF_DAYS: ${CUTOFF_DAYS:-30}
+
   # ── RSS source (no credentials needed) ─────────────────────────────────────
   rss:
     <<: *pipeline-security

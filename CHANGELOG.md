@@ -3,6 +3,20 @@
 All notable changes are documented here. Releases follow Semantic Versioning;
 the canonical JSON contract is versioned independently by `schema_version`.
 
+## [1.3.0] - 2026-09-02
+
+### Added
+
+- Credential-free, offline conference quickstart with synthetic threat reports.
+- `make demo`, `make quickstart`, and a cross-platform `quickstart.py` runner.
+- Committed dashboard preview and repository QR code for attendee handoff.
+- CI coverage for the complete sample-to-dashboard workflow.
+
+### Changed
+
+- Onboarding now leads with a deterministic two-minute experience before live integrations.
+- Docker and the source CLI include the bundled `sample` adapter.
+
 ## [1.2.0] - 2026-09-02
 
 ### Added
@@ -35,3 +49,4 @@ the canonical JSON contract is versioned independently by `schema_version`.
 
 [1.1.0]: https://github.com/matt-snyder-stuff/threat-intel/releases/tag/v1.1.0
 [1.2.0]: https://github.com/matt-snyder-stuff/threat-intel/releases/tag/v1.2.0
+[1.3.0]: https://github.com/matt-snyder-stuff/threat-intel/releases/tag/v1.3.0

@@ -39,6 +39,15 @@ jobs:
           python tools/validate_detections.py
           make help >/dev/null
 
+      - name: Exercise conference quickstart
+        run: |
+          python quickstart.py --output-dir "${{ runner.temp }}/conference-demo"
+          PKL_IN="${{ runner.temp }}/conference-demo/tw-30d-processed.pkl" \
+            JSON_IN="${{ runner.temp }}/conference-demo/threat-watch-data.json" \
+            python tests/validate.py
+          JSON_IN="${{ runner.temp }}/conference-demo/threat-watch-data.json" \
+            python tests/validate_json_schema.py
+
       - name: Build and inspect hardened container
         if: matrix.python-version == '3.13'
         run: |

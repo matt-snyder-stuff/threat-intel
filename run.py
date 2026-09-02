@@ -2,6 +2,7 @@
 """Top-level CLI for the threat-intel pipeline.
 
 Usage:
+  python3 run.py --source sample           # bundled offline demo
   python3 run.py --source opencti          # fetch from OpenCTI
   python3 run.py --source slack            # fetch from Slack channel
   python3 run.py --source rss              # fetch from RSS feeds
@@ -14,6 +15,11 @@ import argparse, os, subprocess, sys
 
 # ── Per-source metadata (for help text + env-var validation) ─────────────────
 SOURCES = {
+    "sample": {
+        "required": [],
+        "optional": ["SAMPLE_DATA_FILE", "CUTOFF_DAYS", "PKL_OUT", "PUB_SIDECAR"],
+        "description": "Load the bundled synthetic conference dataset (no network or credentials).",
+    },
     "opencti": {
         "required": ["OPENCTI_URL", "OPENCTI_TOKEN"],
         "optional": ["RAW_OUT", "PKL_OUT", "PUB_SIDECAR", "CUTOFF_DAYS"],
@@ -26,7 +32,7 @@ SOURCES = {
     },
     "rss": {
         "required": [],
-        "optional": ["RSS_FEEDS", "CUTOFF_DAYS", "PKL_OUT", "PUB_SIDECAR"],
+        "optional": ["RSS_FEEDS", "RSS_FEED_SET", "CUTOFF_DAYS", "PKL_OUT", "PUB_SIDECAR"],
         "description": "Parse RSS/Atom feeds directly (no OpenCTI required).",
     },
     "splunk": {
@@ -78,6 +84,7 @@ def build_parser():
     for name in SOURCES:
         epilog_parts.append(_env_var_table(name))
     epilog_parts.append("\nExamples:")
+    epilog_parts.append("  python3 run.py --source sample --build")
     epilog_parts.append("  python3 run.py --source opencti")
     epilog_parts.append("  python3 run.py --source rss --build")
     epilog_parts.append("  python3 run.py --source slack")
@@ -93,7 +100,7 @@ def build_parser():
         "--source", "-s",
         required=True,
         choices=list(SOURCES.keys()),
-        help="Data source to fetch from (opencti | slack | rss | splunk | stix)",
+        help="Data source to fetch from (sample | opencti | slack | rss | splunk | stix)",
     )
     parser.add_argument(
         "--build", "-b",
@@ -134,7 +141,9 @@ def main():
     check_env(source_name)
 
     # Dispatch to the appropriate source module
-    if source_name == "opencti":
+    if source_name == "sample":
+        from sources.sample import run
+    elif source_name == "opencti":
         from sources.opencti import run
     elif source_name == "slack":
         from sources.slack import run

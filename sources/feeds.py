@@ -130,7 +130,16 @@ FEED_CATEGORIES = {
     "isac_community":        _ISAC,
 }
 
-# Flat list — used as the default when RSS_FEEDS env var is not set
+# Small first-run set. These span government, vendor, news, and cloud reporting
+# without making a new user wait on every feed in the full catalog.
+STARTER_FEEDS: list[str] = [
+    _GOVT[0],
+    _VENDORS[0],
+    _NEWS[1],
+    _CLOUD_AI[1],
+]
+
+# Full catalog — select with RSS_FEED_SET=full.
 DEFAULT_FEEDS: list[str] = (
     _GOVT
     + _VENDORS

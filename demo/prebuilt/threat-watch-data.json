@@ -1,0 +1,1397 @@
+{
+  "generated_at": "2026-09-02T21:52:41.306413+00:00",
+  "window_days": 30,
+  "cutoff": "2026-08-03T21:52:41.270907+00:00",
+  "schema_version": "1.2",
+  "environment_context": {
+    "enabled": false,
+    "name": "Generic environment",
+    "matched_reports": 0
+  },
+  "handling": {
+    "max_tlp": "TLP:AMBER",
+    "excluded_reports": 0
+  },
+  "review_summary": {
+    "unreviewed": 10,
+    "actioned": 0,
+    "confirmed": 0,
+    "false_positive": 0,
+    "expired": 0,
+    "revoked": 0,
+    "owned": 0
+  },
+  "summary": {
+    "total_reports": 10,
+    "cloud": 10,
+    "ai": 2,
+    "publishers": 9,
+    "threat_actors": 5,
+    "cloud_clusters": 7,
+    "containment_pct": 40
+  },
+  "executive_overview": {
+    "thesis": "Cloud-threat reporting this month centers on <strong>identity-driven cloud takeover</strong> and <strong>state-aligned cloud espionage</strong>. <strong>APT29</strong> remain the most active cloud-targeting cluster.",
+    "stats": [
+      {
+        "value": "10",
+        "label": "cloud-relevant reports tracked / 30d",
+        "kind": "num"
+      },
+      {
+        "value": "APT29",
+        "label": "most-active cloud-targeting cluster",
+        "kind": "text"
+      },
+      {
+        "value": "Identity-driven cloud takeover",
+        "label": "#1 cloud attack vector \u00b7 3 cloud reports / 30d",
+        "kind": "text"
+      }
+    ],
+    "imperatives": [
+      {
+        "label": "Adversary watch",
+        "body": "<strong>APT29</strong> \u2014 2 reports / 30d, 2 in the last 7 days. Primary surface: <strong>AZURE / SAAS</strong>. Lead campaign: <em>\"Cloud identity campaign uses device authorization grants\"</em>."
+      },
+      {
+        "label": "Vector watch",
+        "body": "<strong>Identity-driven cloud takeover</strong> \u2014 3 reports / 30d across 3 publishers. Representative: <em>\"Scattered Spider impersonates Okta help desk for credential abuse\"</em>."
+      },
+      {
+        "label": "Emerging signal",
+        "body": "<strong>State-aligned cloud espionage</strong> \u2014 3 reports / 30d. Watch: <em>\"Cloud identity campaign uses device authorization grants\"</em>."
+      }
+    ]
+  },
+  "cloud_clusters": [
+    {
+      "reach_score": 46,
+      "environment_score": 0,
+      "environment_matches": [],
+      "priority_score": 46,
+      "size": 2,
+      "cloud_tags": [
+        "cloud",
+        "cloud-azure",
+        "cloud-saas"
+      ],
+      "ai_tags": [],
+      "publishers": [
+        "CISA",
+        "Microsoft Security Blog"
+      ],
+      "threat_actors": [
+        "APT29"
+      ],
+      "lead": {
+        "id": "sample--apt29-device-code-2",
+        "name": "Cloud identity campaign uses device authorization grants",
+        "url": "https://example.com/threat-intel/sample--apt29-device-code-2",
+        "publisher": "CISA",
+        "confidence": 90,
+        "created": "2026-09-02T12:52:41.270907+00:00",
+        "labels": [
+          "cloud",
+          "cloud-azure",
+          "cloud-saas",
+          "identity"
+        ],
+        "description": "Synthetic corroborating advisory: suspicious device authorization grants preceded mailbox access from login.example.test.",
+        "source_type": "sample",
+        "source_reliability": "A",
+        "tlp": "TLP:CLEAR",
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": ""
+      },
+      "reports": [
+        {
+          "id": "sample--apt29-device-code-1",
+          "name": "APT29 expands OAuth device-code phishing against cloud tenants",
+          "url": "https://example.com/threat-intel/sample--apt29-device-code-1",
+          "publisher": "Microsoft Security Blog",
+          "confidence": 85,
+          "created": "2026-09-02T18:52:41.270907+00:00",
+          "intel_published": "2026-09-02T18:52:41.270907+00:00",
+          "labels": [
+            "cloud",
+            "cloud-azure",
+            "cloud-saas",
+            "identity"
+          ],
+          "tas": [
+            "APT29"
+          ],
+          "description": "Synthetic exercise report: APT29 used OAuth device-code phishing and token replay against Microsoft 365 tenants. Hunt for sign-ins from reserved address 198.51.100.24 and review CVE-2026-41001 exposure.",
+          "iocs": {
+            "cve": [
+              "CVE-2026-41001"
+            ],
+            "ipv4": [
+              "198.51.100.24"
+            ],
+            "url": [],
+            "md5": [],
+            "sha1": [],
+            "sha256": [],
+            "domain": []
+          },
+          "attack_technique_ids": [
+            "T1528",
+            "T1078"
+          ],
+          "mitre_tactics": [
+            "credential-access",
+            "persistence"
+          ],
+          "source_type": "sample",
+          "source_reliability": "A",
+          "tlp": "TLP:CLEAR",
+          "valid_until": "",
+          "revoked": false,
+          "analyst_disposition": "unreviewed",
+          "analyst_owner": "",
+          "case_url": "",
+          "analyst_note": "",
+          "reviewed_at": "",
+          "environment_score": 0,
+          "environment_matches": []
+        },
+        {
+          "id": "sample--apt29-device-code-2",
+          "name": "Cloud identity campaign uses device authorization grants",
+          "url": "https://example.com/threat-intel/sample--apt29-device-code-2",
+          "publisher": "CISA",
+          "confidence": 90,
+          "created": "2026-09-02T12:52:41.270907+00:00",
+          "intel_published": "2026-09-02T12:52:41.270907+00:00",
+          "labels": [
+            "cloud",
+            "cloud-azure",
+            "cloud-saas",
+            "identity"
+          ],
+          "tas": [
+            "APT29"
+          ],
+          "description": "Synthetic corroborating advisory: suspicious device authorization grants preceded mailbox access from login.example.test.",
+          "iocs": {
+            "cve": [],
+            "ipv4": [],
+            "url": [],
+            "md5": [],
+            "sha1": [],
+            "sha256": [],
+            "domain": []
+          },
+          "attack_technique_ids": [
+            "T1528",
+            "T1078"
+          ],
+          "mitre_tactics": [
+            "credential-access",
+            "persistence"
+          ],
+          "source_type": "sample",
+          "source_reliability": "A",
+          "tlp": "TLP:CLEAR",
+          "valid_until": "",
+          "revoked": false,
+          "analyst_disposition": "unreviewed",
+          "analyst_owner": "",
+          "case_url": "",
+          "analyst_note": "",
+          "reviewed_at": "",
+          "environment_score": 0,
+          "environment_matches": []
+        }
+      ]
+    },
+    {
+      "reach_score": 46,
+      "environment_score": 0,
+      "environment_matches": [],
+      "priority_score": 46,
+      "size": 2,
+      "cloud_tags": [
+        "cloud",
+        "cloud-aws",
+        "cloud-cicd"
+      ],
+      "ai_tags": [],
+      "publishers": [
+        "GitHub Security Advisories",
+        "The DFIR Report"
+      ],
+      "threat_actors": [
+        "TeamPCP"
+      ],
+      "lead": {
+        "id": "sample--teampcp-actions-1",
+        "name": "TeamPCP supply-chain dependency enables credential theft from CI runners",
+        "url": "https://example.com/threat-intel/sample--teampcp-actions-1",
+        "publisher": "The DFIR Report",
+        "confidence": 80,
+        "created": "2026-09-01T03:52:41.270907+00:00",
+        "labels": [
+          "cloud",
+          "cloud-cicd",
+          "supply-chain"
+        ],
+        "description": "Synthetic exercise report: a modified GitHub Actions dependency exposed cloud credentials and contacted hxxps://runner-check[.]example[.]test/a.",
+        "source_type": "sample",
+        "source_reliability": "B",
+        "tlp": "TLP:CLEAR",
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": ""
+      },
+      "reports": [
+        {
+          "id": "sample--teampcp-actions-1",
+          "name": "TeamPCP supply-chain dependency enables credential theft from CI runners",
+          "url": "https://example.com/threat-intel/sample--teampcp-actions-1",
+          "publisher": "The DFIR Report",
+          "confidence": 80,
+          "created": "2026-09-01T03:52:41.270907+00:00",
+          "intel_published": "2026-09-01T03:52:41.270907+00:00",
+          "labels": [
+            "cloud",
+            "cloud-cicd",
+            "supply-chain"
+          ],
+          "tas": [
+            "TeamPCP"
+          ],
+          "description": "Synthetic exercise report: a modified GitHub Actions dependency exposed cloud credentials and contacted hxxps://runner-check[.]example[.]test/a.",
+          "iocs": {
+            "cve": [],
+            "ipv4": [],
+            "url": [
+              "https://runner-check"
+            ],
+            "md5": [],
+            "sha1": [],
+            "sha256": [],
+            "domain": []
+          },
+          "attack_technique_ids": [
+            "T1195.002",
+            "T1552.001"
+          ],
+          "mitre_tactics": [
+            "initial-access",
+            "credential-access"
+          ],
+          "source_type": "sample",
+          "source_reliability": "B",
+          "tlp": "TLP:CLEAR",
+          "valid_until": "",
+          "revoked": false,
+          "analyst_disposition": "unreviewed",
+          "analyst_owner": "",
+          "case_url": "",
+          "analyst_note": "",
+          "reviewed_at": "",
+          "environment_score": 0,
+          "environment_matches": []
+        },
+        {
+          "id": "sample--teampcp-actions-2",
+          "name": "Malicious GitHub dependency enables AWS credential theft",
+          "url": "https://example.com/threat-intel/sample--teampcp-actions-2",
+          "publisher": "GitHub Security Advisories",
+          "confidence": 80,
+          "created": "2026-08-30T21:52:41.270907+00:00",
+          "intel_published": "2026-08-30T21:52:41.270907+00:00",
+          "labels": [
+            "cloud",
+            "cloud-aws",
+            "cloud-cicd",
+            "supply-chain"
+          ],
+          "tas": [
+            "TeamPCP"
+          ],
+          "description": "Synthetic corroborating advisory: affected workflows exposed OIDC tokens and contacted reserved address 192.0.2.81.",
+          "iocs": {
+            "cve": [],
+            "ipv4": [
+              "192.0.2.81"
+            ],
+            "url": [],
+            "md5": [],
+            "sha1": [],
+            "sha256": [],
+            "domain": []
+          },
+          "attack_technique_ids": [
+            "T1195.002",
+            "T1552.001"
+          ],
+          "mitre_tactics": [
+            "initial-access",
+            "credential-access"
+          ],
+          "source_type": "sample",
+          "source_reliability": "C",
+          "tlp": "TLP:CLEAR",
+          "valid_until": "",
+          "revoked": false,
+          "analyst_disposition": "unreviewed",
+          "analyst_owner": "",
+          "case_url": "",
+          "analyst_note": "",
+          "reviewed_at": "",
+          "environment_score": 0,
+          "environment_matches": []
+        }
+      ]
+    },
+    {
+      "reach_score": 39,
+      "environment_score": 0,
+      "environment_matches": [],
+      "priority_score": 39,
+      "size": 2,
+      "cloud_tags": [
+        "cloud",
+        "cloud-saas"
+      ],
+      "ai_tags": [],
+      "publishers": [
+        "CrowdStrike",
+        "Mandiant"
+      ],
+      "threat_actors": [
+        "ShinyHunters / Scattered Spider"
+      ],
+      "lead": {
+        "id": "sample--scattered-spider-okta-1",
+        "name": "Scattered Spider impersonates Okta help desk for credential abuse",
+        "url": "https://example.com/threat-intel/sample--scattered-spider-okta-1",
+        "publisher": "CrowdStrike",
+        "confidence": 85,
+        "created": "2026-09-02T03:52:41.270907+00:00",
+        "labels": [
+          "cloud",
+          "cloud-saas",
+          "identity",
+          "social-engineering"
+        ],
+        "description": "Synthetic exercise report: operators impersonated employees, reset MFA, and created new sessions from reserved address 203.0.113.44.",
+        "source_type": "sample",
+        "source_reliability": "A",
+        "tlp": "TLP:CLEAR",
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": ""
+      },
+      "reports": [
+        {
+          "id": "sample--scattered-spider-okta-1",
+          "name": "Scattered Spider impersonates Okta help desk for credential abuse",
+          "url": "https://example.com/threat-intel/sample--scattered-spider-okta-1",
+          "publisher": "CrowdStrike",
+          "confidence": 85,
+          "created": "2026-09-02T03:52:41.270907+00:00",
+          "intel_published": "2026-09-02T03:52:41.270907+00:00",
+          "labels": [
+            "cloud",
+            "cloud-saas",
+            "identity",
+            "social-engineering"
+          ],
+          "tas": [
+            "ShinyHunters / Scattered Spider"
+          ],
+          "description": "Synthetic exercise report: operators impersonated employees, reset MFA, and created new sessions from reserved address 203.0.113.44.",
+          "iocs": {
+            "cve": [],
+            "ipv4": [
+              "203.0.113.44"
+            ],
+            "url": [],
+            "md5": [],
+            "sha1": [],
+            "sha256": [],
+            "domain": []
+          },
+          "attack_technique_ids": [
+            "T1078",
+            "T1098"
+          ],
+          "mitre_tactics": [
+            "initial-access",
+            "persistence"
+          ],
+          "source_type": "sample",
+          "source_reliability": "A",
+          "tlp": "TLP:CLEAR",
+          "valid_until": "",
+          "revoked": false,
+          "analyst_disposition": "unreviewed",
+          "analyst_owner": "",
+          "case_url": "",
+          "analyst_note": "",
+          "reviewed_at": "",
+          "environment_score": 0,
+          "environment_matches": []
+        },
+        {
+          "id": "sample--scattered-spider-okta-2",
+          "name": "Okta identity takeover follows credential abuse in reset workflows",
+          "url": "https://example.com/threat-intel/sample--scattered-spider-okta-2",
+          "publisher": "Mandiant",
+          "confidence": 85,
+          "created": "2026-09-01T15:52:41.270907+00:00",
+          "intel_published": "2026-09-01T15:52:41.270907+00:00",
+          "labels": [
+            "cloud",
+            "cloud-saas",
+            "identity",
+            "social-engineering"
+          ],
+          "tas": [
+            "ShinyHunters / Scattered Spider"
+          ],
+          "description": "Synthetic corroborating report: help-desk social engineering led to MFA reset and privileged SaaS access.",
+          "iocs": {
+            "cve": [],
+            "ipv4": [],
+            "url": [],
+            "md5": [],
+            "sha1": [],
+            "sha256": [],
+            "domain": []
+          },
+          "attack_technique_ids": [
+            "T1078",
+            "T1098"
+          ],
+          "mitre_tactics": [
+            "initial-access",
+            "persistence"
+          ],
+          "source_type": "sample",
+          "source_reliability": "A",
+          "tlp": "TLP:CLEAR",
+          "valid_until": "",
+          "revoked": false,
+          "analyst_disposition": "unreviewed",
+          "analyst_owner": "",
+          "case_url": "",
+          "analyst_note": "",
+          "reviewed_at": "",
+          "environment_score": 0,
+          "environment_matches": []
+        }
+      ]
+    },
+    {
+      "reach_score": 29,
+      "environment_score": 0,
+      "environment_matches": [],
+      "priority_score": 29,
+      "size": 1,
+      "cloud_tags": [
+        "cloud-saas"
+      ],
+      "ai_tags": [
+        "ai",
+        "ai-agentic",
+        "ai-prompt-injection"
+      ],
+      "publishers": [
+        "Google Security Blog"
+      ],
+      "threat_actors": [],
+      "lead": {
+        "id": "sample--ai-agent-prompt-injection-1",
+        "name": "Indirect prompt injection drives unauthorized AI agent tool calls",
+        "url": "https://example.com/threat-intel/sample--ai-agent-prompt-injection-1",
+        "publisher": "Google Security Blog",
+        "confidence": 85,
+        "created": "2026-09-02T14:52:41.270907+00:00",
+        "labels": [
+          "ai",
+          "ai-agentic",
+          "ai-prompt-injection",
+          "cloud-saas"
+        ],
+        "description": "Synthetic exercise report: untrusted document content caused an AI agent to request a public upload after reading an internal file.",
+        "source_type": "sample",
+        "source_reliability": "A",
+        "tlp": "TLP:CLEAR",
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": ""
+      },
+      "reports": [
+        {
+          "id": "sample--ai-agent-prompt-injection-1",
+          "name": "Indirect prompt injection drives unauthorized AI agent tool calls",
+          "url": "https://example.com/threat-intel/sample--ai-agent-prompt-injection-1",
+          "publisher": "Google Security Blog",
+          "confidence": 85,
+          "created": "2026-09-02T14:52:41.270907+00:00",
+          "intel_published": "2026-09-02T14:52:41.270907+00:00",
+          "labels": [
+            "ai",
+            "ai-agentic",
+            "ai-prompt-injection",
+            "cloud-saas"
+          ],
+          "tas": [],
+          "description": "Synthetic exercise report: untrusted document content caused an AI agent to request a public upload after reading an internal file.",
+          "iocs": {
+            "cve": [],
+            "ipv4": [],
+            "url": [],
+            "md5": [],
+            "sha1": [],
+            "sha256": [],
+            "domain": []
+          },
+          "attack_technique_ids": [
+            "T1059"
+          ],
+          "mitre_tactics": [
+            "collection",
+            "exfiltration"
+          ],
+          "source_type": "sample",
+          "source_reliability": "A",
+          "tlp": "TLP:CLEAR",
+          "valid_until": "",
+          "revoked": false,
+          "analyst_disposition": "unreviewed",
+          "analyst_owner": "",
+          "case_url": "",
+          "analyst_note": "",
+          "reviewed_at": "",
+          "environment_score": 0,
+          "environment_matches": []
+        }
+      ]
+    },
+    {
+      "reach_score": 29,
+      "environment_score": 0,
+      "environment_matches": [],
+      "priority_score": 29,
+      "size": 1,
+      "cloud_tags": [
+        "cloud-saas"
+      ],
+      "ai_tags": [
+        "ai",
+        "ai-agentic",
+        "ai-prompt-injection"
+      ],
+      "publishers": [
+        "Wired"
+      ],
+      "threat_actors": [],
+      "lead": {
+        "id": "sample--ai-agent-prompt-injection-2",
+        "name": "Security evaluation finds tool-abuse path in enterprise AI assistant",
+        "url": "https://example.com/threat-intel/sample--ai-agent-prompt-injection-2",
+        "publisher": "Wired",
+        "confidence": 70,
+        "created": "2026-08-31T15:52:41.270907+00:00",
+        "labels": [
+          "ai",
+          "ai-agentic",
+          "ai-prompt-injection",
+          "cloud-saas"
+        ],
+        "description": "Synthetic corroborating report: a retrieved document attempted to override policy and invoke external sharing tools.",
+        "source_type": "sample",
+        "source_reliability": "C",
+        "tlp": "TLP:CLEAR",
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": ""
+      },
+      "reports": [
+        {
+          "id": "sample--ai-agent-prompt-injection-2",
+          "name": "Security evaluation finds tool-abuse path in enterprise AI assistant",
+          "url": "https://example.com/threat-intel/sample--ai-agent-prompt-injection-2",
+          "publisher": "Wired",
+          "confidence": 70,
+          "created": "2026-08-31T15:52:41.270907+00:00",
+          "intel_published": "2026-08-31T15:52:41.270907+00:00",
+          "labels": [
+            "ai",
+            "ai-agentic",
+            "ai-prompt-injection",
+            "cloud-saas"
+          ],
+          "tas": [],
+          "description": "Synthetic corroborating report: a retrieved document attempted to override policy and invoke external sharing tools.",
+          "iocs": {
+            "cve": [],
+            "ipv4": [],
+            "url": [],
+            "md5": [],
+            "sha1": [],
+            "sha256": [],
+            "domain": []
+          },
+          "attack_technique_ids": [],
+          "mitre_tactics": [
+            "collection",
+            "exfiltration"
+          ],
+          "source_type": "sample",
+          "source_reliability": "C",
+          "tlp": "TLP:CLEAR",
+          "valid_until": "",
+          "revoked": false,
+          "analyst_disposition": "unreviewed",
+          "analyst_owner": "",
+          "case_url": "",
+          "analyst_note": "",
+          "reviewed_at": "",
+          "environment_score": 0,
+          "environment_matches": []
+        }
+      ]
+    },
+    {
+      "reach_score": 27,
+      "environment_score": 0,
+      "environment_matches": [],
+      "priority_score": 27,
+      "size": 1,
+      "cloud_tags": [
+        "cloud",
+        "cloud-aws"
+      ],
+      "ai_tags": [],
+      "publishers": [
+        "Palo Alto Unit 42"
+      ],
+      "threat_actors": [
+        "RansomHub"
+      ],
+      "lead": {
+        "id": "sample--ransomware-cloud-backup-1",
+        "name": "RansomHub uses credential abuse before cloud backup encryption",
+        "url": "https://example.com/threat-intel/sample--ransomware-cloud-backup-1",
+        "publisher": "Palo Alto Unit 42",
+        "confidence": 85,
+        "created": "2026-08-26T21:52:41.270907+00:00",
+        "labels": [
+          "cloud",
+          "cloud-aws",
+          "ransomware",
+          "impact"
+        ],
+        "description": "Synthetic exercise report: valid cloud credentials were used to enumerate and delete backup snapshots before endpoint encryption.",
+        "source_type": "sample",
+        "source_reliability": "A",
+        "tlp": "TLP:CLEAR",
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": ""
+      },
+      "reports": [
+        {
+          "id": "sample--ransomware-cloud-backup-1",
+          "name": "RansomHub uses credential abuse before cloud backup encryption",
+          "url": "https://example.com/threat-intel/sample--ransomware-cloud-backup-1",
+          "publisher": "Palo Alto Unit 42",
+          "confidence": 85,
+          "created": "2026-08-26T21:52:41.270907+00:00",
+          "intel_published": "2026-08-26T21:52:41.270907+00:00",
+          "labels": [
+            "cloud",
+            "cloud-aws",
+            "ransomware",
+            "impact"
+          ],
+          "tas": [
+            "RansomHub"
+          ],
+          "description": "Synthetic exercise report: valid cloud credentials were used to enumerate and delete backup snapshots before endpoint encryption.",
+          "iocs": {
+            "cve": [],
+            "ipv4": [],
+            "url": [],
+            "md5": [],
+            "sha1": [],
+            "sha256": [],
+            "domain": []
+          },
+          "attack_technique_ids": [
+            "T1078",
+            "T1490"
+          ],
+          "mitre_tactics": [
+            "defense-evasion",
+            "impact"
+          ],
+          "source_type": "sample",
+          "source_reliability": "A",
+          "tlp": "TLP:CLEAR",
+          "valid_until": "",
+          "revoked": false,
+          "analyst_disposition": "unreviewed",
+          "analyst_owner": "",
+          "case_url": "",
+          "analyst_note": "",
+          "reviewed_at": "",
+          "environment_score": 0,
+          "environment_matches": []
+        }
+      ]
+    },
+    {
+      "reach_score": 20,
+      "environment_score": 0,
+      "environment_matches": [],
+      "priority_score": 20,
+      "size": 1,
+      "cloud_tags": [
+        "cloud"
+      ],
+      "ai_tags": [],
+      "publishers": [
+        "CISA"
+      ],
+      "threat_actors": [
+        "CyberAv3ngers"
+      ],
+      "lead": {
+        "id": "sample--cyberav3ngers-plc-1",
+        "name": "Iran-aligned CyberAv3ngers activity reaches exposed water control systems",
+        "url": "https://example.com/threat-intel/sample--cyberav3ngers-plc-1",
+        "publisher": "CISA",
+        "confidence": 90,
+        "created": "2026-08-28T21:52:41.270907+00:00",
+        "labels": [
+          "cloud",
+          "critical-infrastructure",
+          "ot-ics"
+        ],
+        "description": "Synthetic exercise report based on public tradecraft: default credentials enabled PLC access and unauthorized set-point changes.",
+        "source_type": "sample",
+        "source_reliability": "A",
+        "tlp": "TLP:CLEAR",
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": ""
+      },
+      "reports": [
+        {
+          "id": "sample--cyberav3ngers-plc-1",
+          "name": "Iran-aligned CyberAv3ngers activity reaches exposed water control systems",
+          "url": "https://example.com/threat-intel/sample--cyberav3ngers-plc-1",
+          "publisher": "CISA",
+          "confidence": 90,
+          "created": "2026-08-28T21:52:41.270907+00:00",
+          "intel_published": "2026-08-28T21:52:41.270907+00:00",
+          "labels": [
+            "cloud",
+            "critical-infrastructure",
+            "ot-ics"
+          ],
+          "tas": [
+            "CyberAv3ngers"
+          ],
+          "description": "Synthetic exercise report based on public tradecraft: default credentials enabled PLC access and unauthorized set-point changes.",
+          "iocs": {
+            "cve": [],
+            "ipv4": [],
+            "url": [],
+            "md5": [],
+            "sha1": [],
+            "sha256": [],
+            "domain": []
+          },
+          "attack_technique_ids": [
+            "T1078"
+          ],
+          "mitre_tactics": [
+            "initial-access",
+            "impact"
+          ],
+          "source_type": "sample",
+          "source_reliability": "A",
+          "tlp": "TLP:CLEAR",
+          "valid_until": "",
+          "revoked": false,
+          "analyst_disposition": "unreviewed",
+          "analyst_owner": "",
+          "case_url": "",
+          "analyst_note": "",
+          "reviewed_at": "",
+          "environment_score": 0,
+          "environment_matches": []
+        }
+      ]
+    }
+  ],
+  "threat_actors": [
+    {
+      "name": "APT29",
+      "count": 2,
+      "last7": 2,
+      "prev7": 0,
+      "wow": "up"
+    },
+    {
+      "name": "ShinyHunters / Scattered Spider",
+      "count": 2,
+      "last7": 2,
+      "prev7": 0,
+      "wow": "up"
+    },
+    {
+      "name": "TeamPCP",
+      "count": 2,
+      "last7": 2,
+      "prev7": 0,
+      "wow": "up"
+    },
+    {
+      "name": "CyberAv3ngers",
+      "count": 1,
+      "last7": 1,
+      "prev7": 0,
+      "wow": "up"
+    },
+    {
+      "name": "RansomHub",
+      "count": 1,
+      "last7": 0,
+      "prev7": 1,
+      "wow": "down"
+    }
+  ],
+  "vendor_watch": {
+    "tier1": [
+      {
+        "vendor": "AWS",
+        "count": 3,
+        "reports": [
+          {
+            "id": "sample--teampcp-actions-1",
+            "name": "TeamPCP supply-chain dependency enables credential theft from CI runners",
+            "url": "https://example.com/threat-intel/sample--teampcp-actions-1",
+            "publisher": "The DFIR Report",
+            "created": "2026-09-01T03:52:41.270907+00:00"
+          },
+          {
+            "id": "sample--teampcp-actions-2",
+            "name": "Malicious GitHub dependency enables AWS credential theft",
+            "url": "https://example.com/threat-intel/sample--teampcp-actions-2",
+            "publisher": "GitHub Security Advisories",
+            "created": "2026-08-30T21:52:41.270907+00:00"
+          },
+          {
+            "id": "sample--ransomware-cloud-backup-1",
+            "name": "RansomHub uses credential abuse before cloud backup encryption",
+            "url": "https://example.com/threat-intel/sample--ransomware-cloud-backup-1",
+            "publisher": "Palo Alto Unit 42",
+            "created": "2026-08-26T21:52:41.270907+00:00"
+          }
+        ]
+      },
+      {
+        "vendor": "Microsoft",
+        "count": 2,
+        "reports": [
+          {
+            "id": "sample--apt29-device-code-1",
+            "name": "APT29 expands OAuth device-code phishing against cloud tenants",
+            "url": "https://example.com/threat-intel/sample--apt29-device-code-1",
+            "publisher": "Microsoft Security Blog",
+            "created": "2026-09-02T18:52:41.270907+00:00"
+          },
+          {
+            "id": "sample--apt29-device-code-2",
+            "name": "Cloud identity campaign uses device authorization grants",
+            "url": "https://example.com/threat-intel/sample--apt29-device-code-2",
+            "publisher": "CISA",
+            "created": "2026-09-02T12:52:41.270907+00:00"
+          }
+        ]
+      },
+      {
+        "vendor": "Azure",
+        "count": 2,
+        "reports": [
+          {
+            "id": "sample--apt29-device-code-1",
+            "name": "APT29 expands OAuth device-code phishing against cloud tenants",
+            "url": "https://example.com/threat-intel/sample--apt29-device-code-1",
+            "publisher": "Microsoft Security Blog",
+            "created": "2026-09-02T18:52:41.270907+00:00"
+          },
+          {
+            "id": "sample--apt29-device-code-2",
+            "name": "Cloud identity campaign uses device authorization grants",
+            "url": "https://example.com/threat-intel/sample--apt29-device-code-2",
+            "publisher": "CISA",
+            "created": "2026-09-02T12:52:41.270907+00:00"
+          }
+        ]
+      },
+      {
+        "vendor": "Okta",
+        "count": 2,
+        "reports": [
+          {
+            "id": "sample--scattered-spider-okta-1",
+            "name": "Scattered Spider impersonates Okta help desk for credential abuse",
+            "url": "https://example.com/threat-intel/sample--scattered-spider-okta-1",
+            "publisher": "CrowdStrike",
+            "created": "2026-09-02T03:52:41.270907+00:00"
+          },
+          {
+            "id": "sample--scattered-spider-okta-2",
+            "name": "Okta identity takeover follows credential abuse in reset workflows",
+            "url": "https://example.com/threat-intel/sample--scattered-spider-okta-2",
+            "publisher": "Mandiant",
+            "created": "2026-09-01T15:52:41.270907+00:00"
+          }
+        ]
+      },
+      {
+        "vendor": "Salesforce",
+        "count": 2,
+        "reports": [
+          {
+            "id": "sample--scattered-spider-okta-1",
+            "name": "Scattered Spider impersonates Okta help desk for credential abuse",
+            "url": "https://example.com/threat-intel/sample--scattered-spider-okta-1",
+            "publisher": "CrowdStrike",
+            "created": "2026-09-02T03:52:41.270907+00:00"
+          },
+          {
+            "id": "sample--scattered-spider-okta-2",
+            "name": "Okta identity takeover follows credential abuse in reset workflows",
+            "url": "https://example.com/threat-intel/sample--scattered-spider-okta-2",
+            "publisher": "Mandiant",
+            "created": "2026-09-01T15:52:41.270907+00:00"
+          }
+        ]
+      },
+      {
+        "vendor": "GitHub",
+        "count": 2,
+        "reports": [
+          {
+            "id": "sample--teampcp-actions-1",
+            "name": "TeamPCP supply-chain dependency enables credential theft from CI runners",
+            "url": "https://example.com/threat-intel/sample--teampcp-actions-1",
+            "publisher": "The DFIR Report",
+            "created": "2026-09-01T03:52:41.270907+00:00"
+          },
+          {
+            "id": "sample--teampcp-actions-2",
+            "name": "Malicious GitHub dependency enables AWS credential theft",
+            "url": "https://example.com/threat-intel/sample--teampcp-actions-2",
+            "publisher": "GitHub Security Advisories",
+            "created": "2026-08-30T21:52:41.270907+00:00"
+          }
+        ]
+      },
+      {
+        "vendor": "Google Cloud",
+        "count": 1,
+        "reports": [
+          {
+            "id": "sample--ai-agent-prompt-injection-1",
+            "name": "Indirect prompt injection drives unauthorized AI agent tool calls",
+            "url": "https://example.com/threat-intel/sample--ai-agent-prompt-injection-1",
+            "publisher": "Google Security Blog",
+            "created": "2026-09-02T14:52:41.270907+00:00"
+          }
+        ]
+      }
+    ],
+    "tier2": []
+  },
+  "industry_trends": [
+    {
+      "name": "Identity-driven cloud takeover",
+      "icon": "\ud83d\udd11",
+      "count": 3,
+      "last7": 3,
+      "prev7": 0,
+      "narrative": "3 reports involve adversaries living off identity tokens rather than exploits. Help-desk vishing, OAuth abuse, and federated trust are the new beachheads.",
+      "examples": [
+        {
+          "id": "sample--apt29-device-code-1",
+          "name": "APT29 expands OAuth device-code phishing against cloud tenants",
+          "url": "https://example.com/threat-intel/sample--apt29-device-code-1",
+          "publisher": "Microsoft Security Blog",
+          "created": "2026-09-02T18:52:41.270907+00:00"
+        },
+        {
+          "id": "sample--scattered-spider-okta-1",
+          "name": "Scattered Spider impersonates Okta help desk for credential abuse",
+          "url": "https://example.com/threat-intel/sample--scattered-spider-okta-1",
+          "publisher": "CrowdStrike",
+          "created": "2026-09-02T03:52:41.270907+00:00"
+        },
+        {
+          "id": "sample--scattered-spider-okta-2",
+          "name": "Okta identity takeover follows credential abuse in reset workflows",
+          "url": "https://example.com/threat-intel/sample--scattered-spider-okta-2",
+          "publisher": "Mandiant",
+          "created": "2026-09-01T15:52:41.270907+00:00"
+        }
+      ]
+    },
+    {
+      "name": "State-aligned cloud espionage",
+      "icon": "\ud83c\udf10",
+      "count": 3,
+      "last7": 3,
+      "prev7": 0,
+      "narrative": "3 reports tie to state-aligned threat actors targeting cloud infrastructure. Persistent, long-dwell, intel-gathering posture rather than smash-and-grab.",
+      "examples": [
+        {
+          "id": "sample--apt29-device-code-2",
+          "name": "Cloud identity campaign uses device authorization grants",
+          "url": "https://example.com/threat-intel/sample--apt29-device-code-2",
+          "publisher": "CISA",
+          "created": "2026-09-02T12:52:41.270907+00:00"
+        },
+        {
+          "id": "sample--cyberav3ngers-plc-1",
+          "name": "Iran-aligned CyberAv3ngers activity reaches exposed water control systems",
+          "url": "https://example.com/threat-intel/sample--cyberav3ngers-plc-1",
+          "publisher": "CISA",
+          "created": "2026-08-28T21:52:41.270907+00:00"
+        },
+        {
+          "id": "sample--apt29-device-code-1",
+          "name": "APT29 expands OAuth device-code phishing against cloud tenants",
+          "url": "https://example.com/threat-intel/sample--apt29-device-code-1",
+          "publisher": "Microsoft Security Blog",
+          "created": "2026-09-02T18:52:41.270907+00:00"
+        }
+      ]
+    }
+  ],
+  "containment_impact": [
+    {
+      "score": 50,
+      "matched": [
+        "supply_chain",
+        "credential",
+        "named TA"
+      ],
+      "narrative": "Egress policy on CI/CD pipelines would have blocked TeamPCP's outbound callback before any credential left the runner.",
+      "report": {
+        "id": "sample--teampcp-actions-1",
+        "name": "TeamPCP supply-chain dependency enables credential theft from CI runners",
+        "url": "https://example.com/threat-intel/sample--teampcp-actions-1",
+        "publisher": "The DFIR Report",
+        "confidence": 80,
+        "created": "2026-09-01T03:52:41.270907+00:00",
+        "labels": [
+          "cloud",
+          "cloud-cicd",
+          "supply-chain"
+        ],
+        "tas": [
+          "TeamPCP"
+        ]
+      }
+    },
+    {
+      "score": 46,
+      "matched": [
+        "credential",
+        "identity",
+        "named TA"
+      ],
+      "narrative": "OAuth-aware network policy would have flagged ShinyHunters / Scattered Spider's cross-tenant token replay.",
+      "report": {
+        "id": "sample--scattered-spider-okta-1",
+        "name": "Scattered Spider impersonates Okta help desk for credential abuse",
+        "url": "https://example.com/threat-intel/sample--scattered-spider-okta-1",
+        "publisher": "CrowdStrike",
+        "confidence": 85,
+        "created": "2026-09-02T03:52:41.270907+00:00",
+        "labels": [
+          "cloud",
+          "cloud-saas",
+          "identity",
+          "social-engineering"
+        ],
+        "tas": [
+          "ShinyHunters / Scattered Spider"
+        ]
+      }
+    },
+    {
+      "score": 43,
+      "matched": [
+        "credential",
+        "ransomware",
+        "named TA"
+      ],
+      "narrative": "Identity-aware network gates would have caught RansomHub's credential reuse across cloud accounts.",
+      "report": {
+        "id": "sample--ransomware-cloud-backup-1",
+        "name": "RansomHub uses credential abuse before cloud backup encryption",
+        "url": "https://example.com/threat-intel/sample--ransomware-cloud-backup-1",
+        "publisher": "Palo Alto Unit 42",
+        "confidence": 85,
+        "created": "2026-08-26T21:52:41.270907+00:00",
+        "labels": [
+          "cloud",
+          "cloud-aws",
+          "ransomware",
+          "impact"
+        ],
+        "tas": [
+          "RansomHub"
+        ]
+      }
+    }
+  ],
+  "last_24h": {
+    "cutoff": "2026-09-01T21:52:41.306413+00:00",
+    "count": 4,
+    "cloud_count": 4,
+    "ai_count": 1,
+    "vendor_hits": [
+      "Azure",
+      "Google Cloud",
+      "Microsoft",
+      "Okta",
+      "Salesforce"
+    ],
+    "reports": [
+      {
+        "id": "sample--apt29-device-code-1",
+        "name": "APT29 expands OAuth device-code phishing against cloud tenants",
+        "url": "https://example.com/threat-intel/sample--apt29-device-code-1",
+        "publisher": "Microsoft Security Blog",
+        "confidence": 85,
+        "created": "2026-09-02T18:52:41.270907+00:00",
+        "intel_published": "2026-09-02T18:52:41.270907+00:00",
+        "published": "",
+        "labels": [
+          "cloud",
+          "cloud-azure",
+          "cloud-saas",
+          "identity"
+        ],
+        "tas": [
+          "APT29"
+        ],
+        "t1_vendors": [
+          "Microsoft",
+          "Azure"
+        ],
+        "t2_vendors": [],
+        "description": "Synthetic exercise report: APT29 used OAuth device-code phishing and token replay against Microsoft 365 tenants. Hunt for sign-ins from reserved address 198.51.100.24 and review CVE-2026-41001 exposure.",
+        "iocs": {
+          "cve": [
+            "CVE-2026-41001"
+          ],
+          "ipv4": [
+            "198.51.100.24"
+          ],
+          "url": [],
+          "md5": [],
+          "sha1": [],
+          "sha256": [],
+          "domain": []
+        },
+        "attack_technique_ids": [
+          "T1528",
+          "T1078"
+        ],
+        "mitre_tactics": [
+          "credential-access",
+          "persistence"
+        ],
+        "source_type": "sample",
+        "source_reliability": "A",
+        "tlp": "TLP:CLEAR",
+        "valid_until": "",
+        "revoked": false,
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": "",
+        "analyst_note": "",
+        "reviewed_at": "",
+        "environment_score": 0,
+        "environment_matches": []
+      },
+      {
+        "id": "sample--ai-agent-prompt-injection-1",
+        "name": "Indirect prompt injection drives unauthorized AI agent tool calls",
+        "url": "https://example.com/threat-intel/sample--ai-agent-prompt-injection-1",
+        "publisher": "Google Security Blog",
+        "confidence": 85,
+        "created": "2026-09-02T14:52:41.270907+00:00",
+        "intel_published": "2026-09-02T14:52:41.270907+00:00",
+        "published": "",
+        "labels": [
+          "ai",
+          "ai-agentic",
+          "ai-prompt-injection",
+          "cloud-saas"
+        ],
+        "tas": [],
+        "t1_vendors": [
+          "Google Cloud"
+        ],
+        "t2_vendors": [],
+        "description": "Synthetic exercise report: untrusted document content caused an AI agent to request a public upload after reading an internal file.",
+        "iocs": {
+          "cve": [],
+          "ipv4": [],
+          "url": [],
+          "md5": [],
+          "sha1": [],
+          "sha256": [],
+          "domain": []
+        },
+        "attack_technique_ids": [
+          "T1059"
+        ],
+        "mitre_tactics": [
+          "collection",
+          "exfiltration"
+        ],
+        "source_type": "sample",
+        "source_reliability": "A",
+        "tlp": "TLP:CLEAR",
+        "valid_until": "",
+        "revoked": false,
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": "",
+        "analyst_note": "",
+        "reviewed_at": "",
+        "environment_score": 0,
+        "environment_matches": []
+      },
+      {
+        "id": "sample--apt29-device-code-2",
+        "name": "Cloud identity campaign uses device authorization grants",
+        "url": "https://example.com/threat-intel/sample--apt29-device-code-2",
+        "publisher": "CISA",
+        "confidence": 90,
+        "created": "2026-09-02T12:52:41.270907+00:00",
+        "intel_published": "2026-09-02T12:52:41.270907+00:00",
+        "published": "",
+        "labels": [
+          "cloud",
+          "cloud-azure",
+          "cloud-saas",
+          "identity"
+        ],
+        "tas": [
+          "APT29"
+        ],
+        "t1_vendors": [
+          "Microsoft",
+          "Azure"
+        ],
+        "t2_vendors": [],
+        "description": "Synthetic corroborating advisory: suspicious device authorization grants preceded mailbox access from login.example.test.",
+        "iocs": {
+          "cve": [],
+          "ipv4": [],
+          "url": [],
+          "md5": [],
+          "sha1": [],
+          "sha256": [],
+          "domain": []
+        },
+        "attack_technique_ids": [
+          "T1528",
+          "T1078"
+        ],
+        "mitre_tactics": [
+          "credential-access",
+          "persistence"
+        ],
+        "source_type": "sample",
+        "source_reliability": "A",
+        "tlp": "TLP:CLEAR",
+        "valid_until": "",
+        "revoked": false,
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": "",
+        "analyst_note": "",
+        "reviewed_at": "",
+        "environment_score": 0,
+        "environment_matches": []
+      },
+      {
+        "id": "sample--scattered-spider-okta-1",
+        "name": "Scattered Spider impersonates Okta help desk for credential abuse",
+        "url": "https://example.com/threat-intel/sample--scattered-spider-okta-1",
+        "publisher": "CrowdStrike",
+        "confidence": 85,
+        "created": "2026-09-02T03:52:41.270907+00:00",
+        "intel_published": "2026-09-02T03:52:41.270907+00:00",
+        "published": "",
+        "labels": [
+          "cloud",
+          "cloud-saas",
+          "identity",
+          "social-engineering"
+        ],
+        "tas": [
+          "ShinyHunters / Scattered Spider"
+        ],
+        "t1_vendors": [
+          "Okta",
+          "Salesforce"
+        ],
+        "t2_vendors": [],
+        "description": "Synthetic exercise report: operators impersonated employees, reset MFA, and created new sessions from reserved address 203.0.113.44.",
+        "iocs": {
+          "cve": [],
+          "ipv4": [
+            "203.0.113.44"
+          ],
+          "url": [],
+          "md5": [],
+          "sha1": [],
+          "sha256": [],
+          "domain": []
+        },
+        "attack_technique_ids": [
+          "T1078",
+          "T1098"
+        ],
+        "mitre_tactics": [
+          "initial-access",
+          "persistence"
+        ],
+        "source_type": "sample",
+        "source_reliability": "A",
+        "tlp": "TLP:CLEAR",
+        "valid_until": "",
+        "revoked": false,
+        "analyst_disposition": "unreviewed",
+        "analyst_owner": "",
+        "case_url": "",
+        "analyst_note": "",
+        "reviewed_at": "",
+        "environment_score": 0,
+        "environment_matches": []
+      }
+    ]
+  }
+}

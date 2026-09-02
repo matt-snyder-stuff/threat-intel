@@ -310,7 +310,7 @@
       },
       "additionalProperties": false
     },
-    "sourceType": {"enum": ["rss", "slack", "splunk", "opencti", "stix", "unknown"]},
+    "sourceType": {"enum": ["sample", "rss", "slack", "splunk", "opencti", "stix", "unknown"]},
     "reliability": {"enum": ["A", "B", "C", "D", "E", "F"]},
     "disposition": {"enum": ["unreviewed", "actioned", "confirmed", "false_positive", "expired", "revoked"]},
     "tlp": {"enum": ["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"]}

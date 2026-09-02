@@ -2,7 +2,8 @@
 """RSS source — reads threat intel directly from RSS/Atom feeds (no OpenCTI required).
 
 Optional env:
-  RSS_FEEDS — comma-separated list of feed URLs (defaults to sources/feeds.py DEFAULT_FEEDS)
+  RSS_FEEDS    — comma-separated feed URLs (takes precedence)
+  RSS_FEED_SET — starter (default) or full
   CUTOFF_DAYS — lookback window in days (default 30)
   PKL_OUT     — pickle output path (default /tmp/tw-30d-processed.pkl)
   PUB_SIDECAR — sidecar JSON path  (default /tmp/tw-30d-published.json)
@@ -144,9 +145,12 @@ def _fetch_feed(feed_url):
 def run():
     feeds_env = os.environ.get("RSS_FEEDS", "")
     if not feeds_env.strip():
-        from sources.feeds import DEFAULT_FEEDS
-        feed_urls = DEFAULT_FEEDS
-        print(f"RSS_FEEDS not set — using default feed list ({len(feed_urls)} feeds)", file=sys.stderr)
+        from sources.feeds import DEFAULT_FEEDS, STARTER_FEEDS
+        feed_set = os.environ.get("RSS_FEED_SET", "starter").lower()
+        if feed_set not in {"starter", "full"}:
+            raise ValueError("RSS_FEED_SET must be 'starter' or 'full'")
+        feed_urls = DEFAULT_FEEDS if feed_set == "full" else STARTER_FEEDS
+        print(f"RSS_FEEDS not set — using {feed_set} feed list ({len(feed_urls)} feeds)", file=sys.stderr)
     else:
         feed_urls = [u.strip() for u in feeds_env.split(",") if u.strip()]
     cutoff_days = int(os.environ.get("CUTOFF_DAYS", "30"))

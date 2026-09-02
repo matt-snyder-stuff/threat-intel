@@ -3151,6 +3151,44 @@ extra_css = """
       .trends-grid { grid-template-columns: 1fr; }
       .card-popover { position: static; margin-top: 12px; }
     }
+
+    @media (max-width: 600px) {
+      html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+      .topbar { padding: 0 12px; }
+      .topbar-inner { height: 48px; min-width: 0; gap: 8px; }
+      .brand-product, .brand-sep, .nav-links { display: none; }
+      .nav-status { margin-left: auto; }
+      .wrap { width: 100%; min-width: 0; padding: 16px 12px 48px; }
+      .wrap > *, .section, .hero > *, .cloud-grid > *, .actor-grid > * { min-width: 0; }
+      .section { margin-bottom: 40px; }
+      .hero { gap: 22px; padding: 24px 0; margin-bottom: 32px; }
+      .hero-title { font-size: 30px; }
+      .hero-meta .dot { display: none; }
+      .stat-panel { min-width: 0; gap: 8px; }
+      .stat { padding: 13px; }
+      .stat-value { font-size: 26px; }
+      .view-bar { flex-wrap: wrap; gap: 8px; padding: 10px; }
+      .view-label { flex-basis: 100%; }
+      .view-btn { flex: 1 1 42%; padding: 7px 8px; }
+      .exec-overview, .overview-block, .value-banner,
+      .threat-card, .actor-card, .vendor-panel, .trend-card { padding: 18px 16px; }
+      .exec-thesis { font-size: 19px; }
+      .exec-stat { padding: 0; }
+      .overview-stats, .overview-row, .value-banner { grid-template-columns: 1fr; }
+      .overview-row { gap: 6px; }
+      .value-banner { gap: 12px; }
+      .value-stat-num { font-size: 48px; }
+      .cloud-grid, .actor-grid, .vendor-grid, .radar-grid { grid-template-columns: minmax(0, 1fr); }
+      .containment-row { grid-template-columns: 1fr; gap: 12px; padding: 18px 16px; }
+      .containment-rank { justify-content: flex-start; font-size: 24px; }
+      .containment-impact { grid-column: auto; }
+      .card-footer { align-items: flex-start; flex-wrap: wrap; }
+      .reach-bar { flex-basis: 100%; min-width: 0; }
+      .pulse-row { grid-template-columns: 1fr; }
+      .archive-table { display: block; max-width: 100%; overflow-x: auto; }
+      .pop-article, .pop-mitre { grid-template-columns: 1fr; gap: 4px; }
+      .footer { width: 100%; grid-template-columns: 1fr; padding: 30px 16px; }
+    }
 """
 css_block += extra_css
 
@@ -3456,6 +3494,7 @@ OUT = f"""<!doctype html>
 </body>
 </html>"""
 
+OUT = "\n".join(line.rstrip() for line in OUT.splitlines()) + "\n"
 atomic_write_text(HTML_OUT, OUT)
 
 print(f"Wrote {HTML_OUT} ({len(OUT)} bytes)")

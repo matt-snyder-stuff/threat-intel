@@ -8,7 +8,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
-from sources import rss, slack, splunk, stix
+from sources import rss, sample, slack, splunk, stix
 
 
 REQUIRED_FIELDS = {
@@ -57,6 +57,20 @@ class SourceContractTests(unittest.TestCase):
             rss.run()
             item = self.load_single(os.environ["PKL_OUT"])
         self.assert_contract(item, "rss")
+
+    def test_sample_source_is_deterministic_and_offline(self):
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(os.environ, {
+            "PKL_OUT": os.path.join(directory, "sample.pkl"),
+            "PUB_SIDECAR": os.path.join(directory, "sample.json"),
+        }, clear=False):
+            sample.run()
+            with open(os.environ["PKL_OUT"], "rb") as handle:
+                items = pickle.load(handle)["items"]
+        self.assertGreaterEqual(len(items), 8)
+        self.assertTrue(all(item["source_type"] == "sample" for item in items))
+        self.assertTrue(any(item["tas"] for item in items))
+        for item in items:
+            self.assert_contract(item, "sample")
 
     def test_slack_contract(self):
         message = {
