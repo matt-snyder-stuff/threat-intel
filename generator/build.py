@@ -29,6 +29,16 @@ cutoff_dt = state["cutoff"]
 now = datetime.now(timezone.utc)
 window_days = (now - cutoff_dt).days
 
+# Normalize lifecycle metadata for older/custom sources. The restrictive TLP
+# default prevents an unknown source from being redistributed as public data.
+for item in items:
+    item.setdefault("source_type", "unknown")
+    item.setdefault("source_reliability", "C")
+    item.setdefault("tlp", "TLP:AMBER")
+    item.setdefault("valid_until", "")
+    item.setdefault("revoked", False)
+    item.setdefault("analyst_disposition", "unreviewed")
+
 # For OpenCTI runs, enrich item descriptions from the raw GraphQL dump.
 # For all other sources, items already carry their descriptions — do NOT
 # overwrite them with empty strings when RAW_IN is absent.
@@ -3418,7 +3428,7 @@ tw_data = {
     "generated_at":  now_iso,
     "window_days":   window_days,
     "cutoff":        cutoff_iso,
-    "schema_version": "1.0",
+    "schema_version": "1.1",
 
     # ── Summary counts ───────────────────────────────────────────────────────
     "summary": {
@@ -3459,6 +3469,9 @@ tw_data = {
                 "created":     c["lead"]["created"],
                 "labels":      c["lead"]["all_labels"],
                 "description": c["lead"].get("description", ""),
+                "source_type": c["lead"].get("source_type", "unknown"),
+                "source_reliability": c["lead"].get("source_reliability", "C"),
+                "tlp": c["lead"].get("tlp", "TLP:AMBER"),
             },
             "reports": [
                 {
@@ -3475,6 +3488,12 @@ tw_data = {
                     "iocs":                 i.get("iocs", {}),
                     "attack_technique_ids": i.get("attack_technique_ids", []),
                     "mitre_tactics":        i.get("mitre_tactics", []),
+                    "source_type":          i.get("source_type", "unknown"),
+                    "source_reliability":   i.get("source_reliability", "C"),
+                    "tlp":                  i.get("tlp", "TLP:AMBER"),
+                    "valid_until":          i.get("valid_until", ""),
+                    "revoked":              i.get("revoked", False),
+                    "analyst_disposition":  i.get("analyst_disposition", "unreviewed"),
                 }
                 for i in c["items"]
             ],
@@ -3591,6 +3610,12 @@ tw_data = {
                 "iocs":                 i.get("iocs", {}),
                 "attack_technique_ids": i.get("attack_technique_ids", []),
                 "mitre_tactics":        i.get("mitre_tactics", []),
+                "source_type":          i.get("source_type", "unknown"),
+                "source_reliability":   i.get("source_reliability", "C"),
+                "tlp":                  i.get("tlp", "TLP:AMBER"),
+                "valid_until":          i.get("valid_until", ""),
+                "revoked":              i.get("revoked", False),
+                "analyst_disposition":  i.get("analyst_disposition", "unreviewed"),
             }
             for i in sorted(last_24h_items, key=lambda x: -x["created"].timestamp())
         ],

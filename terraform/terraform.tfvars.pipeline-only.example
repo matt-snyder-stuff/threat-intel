@@ -13,6 +13,7 @@ environment  = "prod"
 aviatrix_admin_password   = "CHANGE_ME_strong_password_here"
 aviatrix_customer_id      = "your-aviatrix-customer-id"
 aviatrix_aws_account_name = "aws-primary"
+admin_cidr_blocks         = ["203.0.113.0/24"] # replace with your office/VPN CIDR
 
 # Networking
 transit_vpc_cidr        = "10.0.0.0/23"

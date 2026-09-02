@@ -54,6 +54,7 @@ from sources.base import (
     save_pickle,
     save_published,
     extract_iocs,
+    lifecycle_fields,
     VENDORS_TIER1,
     VENDORS_TIER2,
     _VRE1,
@@ -61,6 +62,22 @@ from sources.base import (
 )
 
 _VERIFY = os.environ.get("STIX_VERIFY_SSL", "true").lower() != "false"
+
+_TLP_ORDER = {
+    "TLP:CLEAR": 0,
+    "TLP:GREEN": 1,
+    "TLP:AMBER": 2,
+    "TLP:AMBER+STRICT": 3,
+    "TLP:RED": 4,
+}
+
+# Standard STIX marking-definition IDs from the OASIS examples and ATT&CK data.
+_KNOWN_TLP_MARKINGS = {
+    "marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9": "TLP:CLEAR",
+    "marking-definition--34098fce-860f-48ae-8e50-ebd3cc5e41da": "TLP:GREEN",
+    "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82": "TLP:AMBER",
+    "marking-definition--5e57c739-391a-4eb3-b6a3-dac60c9f6e8": "TLP:RED",
+}
 
 # TAXII media types — prefer 2.1, accept 2.0
 _TAXII_MEDIA_TYPES = [
@@ -267,7 +284,36 @@ def _stix_mitre_tactics(obj):
     return tactics
 
 
-def _object_to_item(obj, source_label, cutoff_dt):
+def _tlp_from_marking_definition(obj):
+    """Return a normalized TLP 2.0 value from a STIX marking-definition."""
+    raw = ""
+    if obj.get("definition_type") == "tlp":
+        raw = obj.get("definition", {}).get("tlp", "")
+    if not raw:
+        for extension in obj.get("extensions", {}).values():
+            if isinstance(extension, dict) and extension.get("tlp_2_0"):
+                raw = extension["tlp_2_0"]
+                break
+    normalized = str(raw).strip().upper().replace("TLP:", "")
+    if normalized == "WHITE":
+        normalized = "CLEAR"
+    value = f"TLP:{normalized}" if normalized else ""
+    return value if value in _TLP_ORDER else ""
+
+
+def _stix_tlp(obj, marking_definitions):
+    """Resolve object markings and return the most restrictive TLP value."""
+    values = []
+    for ref in obj.get("object_marking_refs", []):
+        value = _KNOWN_TLP_MARKINGS.get(ref)
+        if not value and ref in marking_definitions:
+            value = _tlp_from_marking_definition(marking_definitions[ref])
+        if value:
+            values.append(value)
+    return max(values, key=_TLP_ORDER.get) if values else "TLP:AMBER"
+
+
+def _object_to_item(obj, source_label, cutoff_dt, marking_definitions=None):
     """Convert a single STIX object to a pipeline item dict, or return None if filtered."""
     obj_type = obj.get("type", "")
     if obj_type not in _STIX_REPORT_TYPES:
@@ -331,6 +377,13 @@ def _object_to_item(obj, source_label, cutoff_dt):
         "attack_technique_ids":  attack_ids,
         "mitre_tactics":         mitre_tactics,
         "iocs":                  iocs,
+        **lifecycle_fields(
+            publisher,
+            "stix",
+            tlp=_stix_tlp(obj, marking_definitions or {}),
+            valid_until=obj.get("valid_until", ""),
+            revoked=obj.get("revoked", False),
+        ),
     }
 
 
@@ -339,6 +392,11 @@ def _objects_to_items(objects, source_label, cutoff_dt):
     items, pub_dates = [], {}
     skipped_old = 0
     skipped_type = 0
+    marking_definitions = {
+        o.get("id"): o
+        for o in objects
+        if o.get("type") == "marking-definition" and o.get("id")
+    }
 
     # Priority: ingest Reports first; if none, fall back to all supported types
     report_objects = [o for o in objects if o.get("type") == "report"]
@@ -350,7 +408,7 @@ def _objects_to_items(objects, source_label, cutoff_dt):
         print(f"  No Report objects found — ingesting all {len(objects)} supported objects", file=sys.stderr)
 
     for obj in work_objects:
-        item = _object_to_item(obj, source_label, cutoff_dt)
+        item = _object_to_item(obj, source_label, cutoff_dt, marking_definitions)
         if item is None:
             obj_type = obj.get("type", "")
             if obj_type not in _STIX_REPORT_TYPES:

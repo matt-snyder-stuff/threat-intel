@@ -41,6 +41,23 @@ Agents that post to Slack must:
 - Use a bot token with the minimum required scopes (`chat:write` only)
 - Not forward raw report descriptions directly — always attribute and truncate
 
+The repository tests these declarations as security contracts in
+`tests/test_security_contracts.py`. Runtime authorization must still be enforced
+by Splunk, Slack, network policy, and the agent execution platform; prompt text
+alone is not an authorization boundary.
+
+## Audit and retention
+
+Files written under `/tmp` and `prior-hunts/` are analyst working records. They
+are not immutable audit storage. Production operators should export completed
+run records to a write-once or access-controlled system of record and retain:
+
+- operator and approving reviewer identity
+- agent definition commit SHA and model identifier
+- dataset generation time and content hash
+- exact searches, time bounds, result counts, and Splunk search IDs
+- findings, dispositions, detection artifacts, and approval references
+
 ## Reporting a vulnerability
 
 If you discover a security vulnerability in this project:

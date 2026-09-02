@@ -16,7 +16,7 @@ systemctl enable --now docker
 # Docker Compose v2 plugin
 COMPOSE_VERSION=v2.27.1
 mkdir -p /usr/local/lib/docker/cli-plugins
-curl -fsSL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
+curl -fsSL "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
   -o /usr/local/lib/docker/cli-plugins/docker-compose
 chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
@@ -69,7 +69,7 @@ services:
     image: redis:7.2
     restart: unless-stopped
     volumes:
-      - ${DATA_MOUNT}/redisdata:/data
+      - $${DATA_MOUNT}/redisdata:/data
     networks:
       - opencti-net
     healthcheck:
@@ -86,7 +86,7 @@ services:
       - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
     volumes:
-      - ${DATA_MOUNT}/esdata:/usr/share/elasticsearch/data
+      - $${DATA_MOUNT}/esdata:/usr/share/elasticsearch/data
     networks:
       - opencti-net
     ulimits:
@@ -110,7 +110,7 @@ services:
       MINIO_ROOT_USER: opencti
       MINIO_ROOT_PASSWORD: \$${MINIO_SECRET}
     volumes:
-      - ${DATA_MOUNT}/s3data:/data
+      - $${DATA_MOUNT}/s3data:/data
     networks:
       - opencti-net
     healthcheck:
@@ -126,7 +126,7 @@ services:
       RABBITMQ_DEFAULT_USER: opencti
       RABBITMQ_DEFAULT_PASS: \$${RABBIT_SECRET}
     volumes:
-      - ${DATA_MOUNT}/amqpdata:/var/lib/rabbitmq
+      - $${DATA_MOUNT}/amqpdata:/var/lib/rabbitmq
     networks:
       - opencti-net
     healthcheck:
@@ -219,4 +219,4 @@ systemctl daemon-reload
 systemctl enable opencti
 
 echo "=== opencti bootstrap complete $(date -u) ==="
-echo "UI will be available at http://${HOST_IP}:${opencti_port} once containers are healthy (~2 min)"
+echo "UI will be available at http://$${HOST_IP}:${opencti_port} once containers are healthy (~2 min)"

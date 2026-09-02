@@ -20,6 +20,7 @@ from datetime import datetime, timezone, timedelta
 from sources.base import (
     publisher_from_url,
     confidence_for_publisher,
+    lifecycle_fields,
     extract_tas,
     extract_vendors,
     extract_iocs,
@@ -148,6 +149,7 @@ def run():
             "attack_technique_ids": [],
             "mitre_tactics":        [],
             "iocs":                 extract_iocs(description),
+            **lifecycle_fields(publisher, "slack"),
         })
 
     print(f"Processed {len(items)} items (cutoff: {cutoff_dt.date()})", file=sys.stderr)

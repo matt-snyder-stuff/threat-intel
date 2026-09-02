@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/matt-snyder-stuff/threat-intel/schema/threat-watch-data.schema.json",
+  "title": "Threat Watch canonical dataset",
+  "type": "object",
+  "required": [
+    "generated_at",
+    "window_days",
+    "schema_version",
+    "summary",
+    "cloud_clusters",
+    "last_24h"
+  ],
+  "properties": {
+    "generated_at": { "type": "string", "format": "date-time" },
+    "window_days": { "type": "integer", "minimum": 0 },
+    "schema_version": { "const": "1.1" },
+    "summary": { "type": "object" },
+    "cloud_clusters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reach_score", "size", "lead", "reports"],
+        "properties": {
+          "reach_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "size": { "type": "integer", "minimum": 1 },
+          "lead": { "$ref": "#/$defs/leadReport" },
+          "reports": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/report" }
+          }
+        }
+      }
+    },
+    "last_24h": {
+      "type": "object",
+      "required": ["cutoff", "count", "reports"],
+      "properties": {
+        "cutoff": { "type": "string", "format": "date-time" },
+        "count": { "type": "integer", "minimum": 0 },
+        "reports": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/report" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "leadReport": {
+      "type": "object",
+      "required": ["id", "name", "url", "publisher", "confidence", "source_type", "source_reliability", "tlp"]
+    },
+    "report": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "url",
+        "publisher",
+        "confidence",
+        "intel_published",
+        "labels",
+        "tas",
+        "description",
+        "iocs",
+        "attack_technique_ids",
+        "mitre_tactics",
+        "source_type",
+        "source_reliability",
+        "tlp",
+        "valid_until",
+        "revoked",
+        "analyst_disposition"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "publisher": { "type": "string" },
+        "confidence": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "intel_published": { "type": "string", "format": "date-time" },
+        "labels": { "type": "array", "items": { "type": "string" } },
+        "tas": { "type": "array", "items": { "type": "string" } },
+        "description": { "type": "string" },
+        "iocs": { "type": "object" },
+        "attack_technique_ids": { "type": "array", "items": { "type": "string", "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$" } },
+        "mitre_tactics": { "type": "array", "items": { "type": "string" } },
+        "source_type": { "enum": ["rss", "slack", "splunk", "opencti", "stix", "unknown"] },
+        "source_reliability": { "enum": ["A", "B", "C", "D", "E", "F"] },
+        "tlp": { "enum": ["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"] },
+        "valid_until": { "type": "string" },
+        "revoked": { "type": "boolean" },
+        "analyst_disposition": { "enum": ["unreviewed", "actioned", "confirmed", "false_positive", "expired", "revoked"] }
+      }
+    }
+  }
+}

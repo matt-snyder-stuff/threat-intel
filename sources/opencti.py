@@ -22,6 +22,7 @@ from sources.base import (
     auto_labels,
     save_pickle,
     save_published,
+    lifecycle_fields,
     _VRE1, _VRE2,
     VENDORS_TIER1, VENDORS_TIER2,
 )
@@ -228,6 +229,7 @@ def run():
             "mitre_tactics":        [],
             # iocs populated from description after build.py enrichment
             "iocs":                 {},
+            **lifecycle_fields(publisher, "opencti"),
         })
 
     print(f"Processed {len(items)} items (cutoff: {cutoff_dt.date()})", file=sys.stderr)

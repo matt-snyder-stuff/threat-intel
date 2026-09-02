@@ -25,6 +25,8 @@ REQUIRED_ITEM_FIELDS = [
     "attack_technique_ids",
     "mitre_tactics",
     "iocs",
+    "source_type", "source_reliability", "tlp",
+    "valid_until", "revoked", "analyst_disposition",
 ]
 
 REQUIRED_JSON_KEYS = [
@@ -33,6 +35,8 @@ REQUIRED_JSON_KEYS = [
 ]
 
 IOC_TYPES = {"cve", "ipv4", "url", "md5", "sha1", "sha256", "domain"}
+TLP_VALUES = {"TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"}
+RELIABILITY_VALUES = set("ABCDEF")
 
 _CVE_RE   = re.compile(r'^CVE-\d{4}-\d{4,7}$', re.IGNORECASE)
 _IPV4_RE  = re.compile(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
@@ -84,6 +88,12 @@ def validate_pickle(path):
         if not isinstance(item.get("mitre_tactics"), list):
             type_errors += 1
         if not isinstance(item.get("iocs"), dict):
+            type_errors += 1
+        if item.get("tlp") not in TLP_VALUES:
+            type_errors += 1
+        if item.get("source_reliability") not in RELIABILITY_VALUES:
+            type_errors += 1
+        if not isinstance(item.get("revoked"), bool):
             type_errors += 1
         conf = item.get("confidence", -1)
         if not (0 <= conf <= 100):
@@ -180,6 +190,10 @@ def validate_json(path):
     with open(path) as f:
         d = json.load(f)
 
+    if d.get("schema_version") != "1.1":
+        print(f"  FAIL: expected schema_version 1.1, got {d.get('schema_version')!r}")
+        errors += 1
+
     for key in REQUIRED_JSON_KEYS:
         if not check(key in d, f"missing key '{key}'"):
             errors += 1
@@ -196,7 +210,9 @@ def validate_json(path):
     report_ioc_errors = 0
     for cluster in clusters:
         for report in cluster.get("reports", []):
-            for field in ("intel_published", "iocs", "attack_technique_ids", "description"):
+            for field in ("intel_published", "iocs", "attack_technique_ids", "description",
+                          "source_type", "source_reliability", "tlp", "valid_until",
+                          "revoked", "analyst_disposition"):
                 if field not in report:
                     report_ioc_errors += 1
     if report_ioc_errors:
@@ -210,7 +226,9 @@ def validate_json(path):
     # Same check for last_24h reports
     last24_ioc_errors = 0
     for report in d.get("last_24h", {}).get("reports", []):
-        for field in ("intel_published", "iocs", "attack_technique_ids"):
+        for field in ("intel_published", "iocs", "attack_technique_ids", "source_type",
+                      "source_reliability", "tlp", "valid_until", "revoked",
+                      "analyst_disposition"):
             if field not in report:
                 last24_ioc_errors += 1
     if last24_ioc_errors:

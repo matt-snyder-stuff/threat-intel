@@ -28,6 +28,7 @@ from urllib.parse import urlencode
 from sources.base import (
     extract_tas, extract_vendors, extract_iocs, VENDORS_TIER1, VENDORS_TIER2,
     _VRE1, _VRE2, auto_labels, publisher_from_url, save_pickle, save_published,
+    lifecycle_fields,
 )
 
 # Default search — finds items in a threat intel index or lookup.
@@ -208,6 +209,7 @@ def run():
             "attack_technique_ids": [],
             "mitre_tactics":        [],
             "iocs":                 extract_iocs(desc),
+            **lifecycle_fields(pub, "splunk"),
         }
         items.append(item)
         if url:

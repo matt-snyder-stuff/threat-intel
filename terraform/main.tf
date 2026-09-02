@@ -29,6 +29,7 @@ module "aviatrix_controller" {
   admin_password     = var.aviatrix_admin_password
   customer_id        = var.aviatrix_customer_id
   controller_version = var.aviatrix_controller_version
+  admin_cidr_blocks  = var.admin_cidr_blocks
 }
 
 # ── Onboard the AWS account into the controller ───────────────────────────────

@@ -15,6 +15,7 @@ from email.utils import parsedate_to_datetime
 from sources.base import (
     publisher_from_url,
     confidence_for_publisher,
+    lifecycle_fields,
     extract_tas,
     extract_vendors,
     extract_iocs,
@@ -202,6 +203,7 @@ def run():
                 "attack_technique_ids": [],
                 "mitre_tactics":        [],
                 "iocs":                 extract_iocs(desc),
+                **lifecycle_fields(publisher, "rss"),
             })
 
     # Deduplicate by id (same item may appear in multiple feeds)

@@ -210,13 +210,13 @@ The standalone [`agent/digest-agent.md`](agent/digest-agent.md) works without Cl
 
 ## Dataset schema (`threat-watch-data.json`)
 
-The JSON export is the single canonical dataset consumed by all downstream agents and tools. Schema version `1.0`.
+The JSON export is the single canonical dataset consumed by all downstream agents and tools. Schema version `1.1`; the machine-readable contract is [`schema/threat-watch-data.schema.json`](schema/threat-watch-data.schema.json).
 
 ```json
 {
   "generated_at":   "ISO timestamp",
   "window_days":    30,
-  "schema_version": "1.0",
+  "schema_version": "1.1",
 
   "summary": {
     "total_reports": 142, "cloud": 89, "ai": 53, "publishers": 18
@@ -265,17 +265,20 @@ The JSON export is the single canonical dataset consumed by all downstream agent
 | `attack_technique_ids` | list | all | MITRE ATT&CK T-IDs — from STIX/OpenCTI when structured, otherwise inferred from description text and threat actor attribution |
 | `mitre_tactics` | list | all | Tactic labels derived from technique IDs |
 | `tas` | list | all | Threat actor names extracted from text or OpenCTI SDO links |
+| `source_type` | enum | all | Origin adapter: RSS, Slack, Splunk, OpenCTI, or STIX |
+| `source_reliability` | A-F | all | Admiralty-style publisher reliability; separate from claim confidence |
+| `tlp` | enum | all | TLP 2.0 handling marking; unknown/custom sources fail closed to `TLP:AMBER` |
+| `valid_until` | ISO string | structured sources | Indicator validity end when supplied; blank means unknown, not infinite |
+| `revoked` | boolean | all | Retraction status; revoked STIX objects are excluded during ingestion |
+| `analyst_disposition` | enum | all | Starts as `unreviewed`; downstream review systems can record disposition |
 
-**Fields not yet in the canonical schema** — gaps to close before production CTI use:
+**Remaining enrichment gaps** — these require an external CTI platform or analyst workflow:
 
 | Missing field | Why it matters | Where to add |
 |---------------|---------------|-------------|
-| `tlp` | Controls redistribution. Without TLP WHITE/GREEN/AMBER/RED, every downstream consumer must guess or default to most restrictive. | OpenCTI/STIX sources have this natively; RSS/Slack default to TLP:WHITE |
-| `source_reliability` | Separates "Wired reported it" from "anonymous paste." Admiralty scale A–F is standard. | `sources/base.py` publisher confidence tiers are a proxy; formal field needed |
 | `ioc_first_seen` / `ioc_last_seen` | An IOC that hasn't been observed in 18 months may not be worth hunting. | Requires enrichment pass against VirusTotal or MISP |
-| `ioc_expiry` | Stale IOCs generate false positives. STIX has `valid_until`; RSS has nothing. | Can default to `intel_published + 90d` for RSS/Slack |
-| `revoked` | Vendor retracts false report. Pipeline would re-surface it on next run. | OpenCTI/STIX sources propagate this; others need manual process |
-| `analyst_disposition` | Was this acted on? False positive? Confirmed? | `prior-hunts/` captures this per hunt, but not per IOC |
+| IOC-specific expiry | Report-level `valid_until` is preserved, but RSS and Slack do not provide indicator validity windows. | Enrich against a CTI platform; do not invent expiry dates |
+| Disposition persistence | The schema supports `analyst_disposition`, but this static pipeline does not provide a multi-user review database. | Integrate with OpenCTI, a case platform, or a versioned review service |
 
 **Consuming the dataset from an agent:**
 
@@ -320,9 +323,13 @@ Each item needs:
     "mitre_tactics":        list[str],  # tactic labels, e.g. ["initial-access"]
     "iocs":                 dict,       # {cve: [...], ipv4: [...], domain: [...], url: [...],
                                         #  md5: [...], sha1: [...], sha256: [...]}
-    # ── Strongly recommended (required for TLP-aware distribution) ────────────
-    # "tlp":          str,         # TLP:WHITE / GREEN / AMBER / RED  (default: WHITE for RSS/Slack)
-    # "intel_published": str,      # ISO datetime — when intel was originally published
+    # ── Handling and lifecycle ────────────────────────────────────────────────
+    "source_type": str,            # rss / slack / splunk / opencti / stix
+    "source_reliability": str,     # Admiralty A-F; distinct from confidence
+    "tlp": str,                    # TLP 2.0; unknown sources default to TLP:AMBER
+    "valid_until": str,            # ISO datetime or "" when unknown
+    "revoked": bool,
+    "analyst_disposition": str,    # starts as "unreviewed"
 }
 ```
 
@@ -435,6 +442,16 @@ No agent writes to Splunk, modifies alerts, or runs destructive commands.
 - The `peak-hunt` agent writes a structured JSON record to `prior-hunts/` at closure. This serves as the institutional memory and audit log for all hunts run in this environment.
 - For production use, run agents under a **read-only Splunk role** with access limited to the indexes in `environment.md`. Do not use admin credentials.
 - Treat agent-generated SPL as a starting point, not a finished detection. Review generated correlation searches and Sigma rules before deploying to production alerting.
+
+These are operating controls expressed in agent definitions and documentation; they are not a substitute for platform enforcement. Production deployments should enforce read-only roles, index allowlists, search quotas, approval gates, and immutable audit export outside the model runtime. Local `/tmp` reports are working evidence, not a compliance-grade system of record.
+
+### Continuous assurance
+
+GitHub Actions validates Python 3.9 and 3.13, checks every agent for an explicit untrusted-data boundary, runs the complete OpenCTI-to-dashboard path against a deterministic mock, validates schema and lifecycle fields, and checks Terraform formatting. Require the `validate` workflow before merging to `main`.
+
+Local contributors can install the isolated validation dependency with `python3 -m pip install -r requirements-dev.txt`. The runtime pipeline remains standard-library only.
+
+Workflow actions are pinned to immutable commit SHAs, Terraform providers are locked, Dependabot monitors the development validator and GitHub Actions, and `CODEOWNERS` requests owner review. Repository branch protection must still be configured in GitHub to make those checks and reviews mandatory.
 
 ### Cost
 

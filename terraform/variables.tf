@@ -34,6 +34,21 @@ variable "aviatrix_aws_account_name" {
   default     = "aws-primary"
 }
 
+variable "admin_cidr_blocks" {
+  description = "Office or VPN CIDRs allowed to reach the Aviatrix controller HTTPS UI. Public internet access is rejected."
+  type        = list(string)
+
+  validation {
+    condition = (
+      length(var.admin_cidr_blocks) > 0 &&
+      alltrue([for cidr in var.admin_cidr_blocks : can(cidrhost(cidr, 0))]) &&
+      !contains(var.admin_cidr_blocks, "0.0.0.0/0") &&
+      !contains(var.admin_cidr_blocks, "::/0")
+    )
+    error_message = "admin_cidr_blocks must contain valid restricted office or VPN CIDRs; 0.0.0.0/0 and ::/0 are not allowed."
+  }
+}
+
 # ── Networking ────────────────────────────────────────────────────────────────
 
 variable "transit_vpc_cidr" {

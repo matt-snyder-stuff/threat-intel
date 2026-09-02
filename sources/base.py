@@ -165,6 +165,36 @@ def confidence_for_publisher(publisher_name):
     return PUBLISHER_CONFIDENCE.get(publisher_name, 60)
 
 
+def source_reliability_for_publisher(publisher_name):
+    """Return an Admiralty-style source reliability grade (A-F).
+
+    This grades the publisher's established reporting process, not whether a
+    specific claim is true. Item confidence remains a separate field.
+    """
+    confidence = confidence_for_publisher(publisher_name)
+    if confidence >= 85:
+        return "A"
+    if confidence >= 70:
+        return "B"
+    if confidence >= 60:
+        return "C"
+    return "D"
+
+
+def lifecycle_fields(publisher, source_type, tlp=None, valid_until="", revoked=False):
+    """Return normalized handling and lifecycle metadata for a pipeline item."""
+    if tlp is None:
+        tlp = "TLP:CLEAR" if source_type == "rss" else "TLP:AMBER"
+    return {
+        "source_type": source_type,
+        "source_reliability": source_reliability_for_publisher(publisher),
+        "tlp": tlp,
+        "valid_until": valid_until or "",
+        "revoked": bool(revoked),
+        "analyst_disposition": "unreviewed",
+    }
+
+
 # feedburner path → canonical publisher (feedburner masks the real domain in feed URLs)
 _FEEDBURNER_MAP = {
     "talosintelligenceblog":   "Cisco Talos",

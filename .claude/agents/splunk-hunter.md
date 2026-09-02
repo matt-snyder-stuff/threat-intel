@@ -63,6 +63,8 @@ Extract IOCs, TTPs, and behavioral patterns from each target's description text.
 
 ## PHASE 3 — Execute Splunk searches
 
+Never print credentials or include authorization headers in reports or logs.
+
 **COUNT-FIRST is mandatory before pulling any field values.** Follow this 4-step sequence for every hunt query. Never skip to field-level results without first establishing result volume — running a broad scan against a large index without a count check is the primary cause of runaway query cost.
 
 ```

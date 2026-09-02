@@ -11,15 +11,13 @@ resource "aviatrix_vpc" "pipeline" {
 # ── Spoke Gateway ─────────────────────────────────────────────────────────────
 
 resource "aviatrix_spoke_gateway" "pipeline" {
-  cloud_type                        = 1
-  account_name                      = var.account_name
-  gw_name                           = "${var.name_prefix}-spoke-pipeline-gw"
-  vpc_id                            = aviatrix_vpc.pipeline.vpc_id
-  vpc_reg                           = var.aws_region
-  gw_size                           = var.gw_size
-  subnet                            = aviatrix_vpc.pipeline.subnets[0].cidr
-  enable_active_mesh                = true
-  manage_transit_gateway_attachment = false
+  cloud_type   = 1
+  account_name = var.account_name
+  gw_name      = "${var.name_prefix}-spoke-pipeline-gw"
+  vpc_id       = aviatrix_vpc.pipeline.vpc_id
+  vpc_reg      = var.aws_region
+  gw_size      = var.gw_size
+  subnet       = aviatrix_vpc.pipeline.subnets[0].cidr
 
   tags = { Name = "${var.name_prefix}-spoke-pipeline-gw" }
 }

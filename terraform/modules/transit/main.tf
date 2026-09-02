@@ -24,7 +24,6 @@ resource "aviatrix_transit_gateway" "this" {
   subnet                   = aviatrix_vpc.transit.subnets[0].cidr
   ha_subnet                = aviatrix_vpc.transit.subnets[2].cidr
   ha_gw_size               = var.gw_size
-  enable_active_mesh       = true
   enable_hybrid_connection = false
   connected_transit        = true
 
@@ -40,13 +39,13 @@ resource "aviatrix_transit_gateway" "this" {
 # Any other outbound traffic is dropped at the transit gateway.
 
 resource "aviatrix_fqdn" "egress" {
-  fqdn_tag     = "${var.name_prefix}-egress-allowlist"
-  fqdn_enabled = true
-  fqdn_mode    = "white" # allowlist mode
+  fqdn_tag            = "${var.name_prefix}-egress-allowlist"
+  fqdn_enabled        = true
+  fqdn_mode           = "white" # allowlist mode
+  manage_domain_names = true
 
   gw_filter_tag_list {
-    gw_name           = aviatrix_transit_gateway.this.gw_name
-    destination_cidrs = []
+    gw_name = aviatrix_transit_gateway.this.gw_name
   }
 
   dynamic "domain_names" {
