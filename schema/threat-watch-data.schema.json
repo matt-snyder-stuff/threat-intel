@@ -4,94 +4,262 @@
   "title": "Threat Watch canonical dataset",
   "type": "object",
   "required": [
-    "generated_at",
-    "window_days",
-    "schema_version",
-    "summary",
-    "cloud_clusters",
-    "last_24h"
+    "generated_at", "window_days", "cutoff", "schema_version", "summary",
+    "executive_overview", "cloud_clusters", "threat_actors", "vendor_watch",
+    "industry_trends", "containment_impact", "last_24h"
   ],
   "properties": {
-    "generated_at": { "type": "string", "format": "date-time" },
-    "window_days": { "type": "integer", "minimum": 0 },
-    "schema_version": { "const": "1.1" },
-    "summary": { "type": "object" },
+    "generated_at": {"type": "string", "format": "date-time"},
+    "window_days": {"type": "integer", "minimum": 0},
+    "cutoff": {"type": "string", "format": "date-time"},
+    "schema_version": {"const": "1.1"},
+    "summary": {
+      "type": "object",
+      "required": [
+        "total_reports", "cloud", "ai", "publishers", "threat_actors",
+        "cloud_clusters", "containment_pct"
+      ],
+      "properties": {
+        "total_reports": {"type": "integer", "minimum": 0},
+        "cloud": {"type": "integer", "minimum": 0},
+        "ai": {"type": "integer", "minimum": 0},
+        "publishers": {"type": "integer", "minimum": 0},
+        "threat_actors": {"type": "integer", "minimum": 0},
+        "cloud_clusters": {"type": "integer", "minimum": 0},
+        "containment_pct": {"type": "integer", "minimum": 0, "maximum": 100}
+      },
+      "additionalProperties": false
+    },
+    "executive_overview": {
+      "type": "object",
+      "required": ["thesis", "stats", "imperatives"],
+      "properties": {
+        "thesis": {"type": "string"},
+        "stats": {"type": "array", "items": {"type": "object"}},
+        "imperatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "body"],
+            "properties": {"label": {"type": "string"}, "body": {"type": "string"}},
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "cloud_clusters": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["reach_score", "size", "lead", "reports"],
+        "required": [
+          "reach_score", "size", "cloud_tags", "ai_tags", "publishers",
+          "threat_actors", "lead", "reports"
+        ],
         "properties": {
-          "reach_score": { "type": "integer", "minimum": 0, "maximum": 100 },
-          "size": { "type": "integer", "minimum": 1 },
-          "lead": { "$ref": "#/$defs/leadReport" },
-          "reports": {
-            "type": "array",
-            "items": { "$ref": "#/$defs/report" }
-          }
-        }
+          "reach_score": {"type": "integer", "minimum": 0, "maximum": 100},
+          "size": {"type": "integer", "minimum": 1},
+          "cloud_tags": {"$ref": "#/$defs/stringArray"},
+          "ai_tags": {"$ref": "#/$defs/stringArray"},
+          "publishers": {"$ref": "#/$defs/stringArray"},
+          "threat_actors": {"$ref": "#/$defs/stringArray"},
+          "lead": {"$ref": "#/$defs/leadReport"},
+          "reports": {"type": "array", "items": {"$ref": "#/$defs/report"}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "threat_actors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "count", "last7", "prev7", "wow"],
+        "properties": {
+          "name": {"type": "string"},
+          "count": {"type": "integer", "minimum": 0},
+          "last7": {"type": "integer", "minimum": 0},
+          "prev7": {"type": "integer", "minimum": 0},
+          "wow": {"enum": ["up", "down", "flat"]}
+        },
+        "additionalProperties": false
+      }
+    },
+    "vendor_watch": {
+      "type": "object",
+      "required": ["tier1", "tier2"],
+      "properties": {
+        "tier1": {"type": "array", "items": {"$ref": "#/$defs/vendorWatch"}},
+        "tier2": {"type": "array", "items": {"$ref": "#/$defs/vendorWatch"}}
+      },
+      "additionalProperties": false
+    },
+    "industry_trends": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "icon", "count", "last7", "prev7", "narrative", "examples"],
+        "properties": {
+          "name": {"type": "string"},
+          "icon": {"type": "string"},
+          "count": {"type": "integer", "minimum": 0},
+          "last7": {"type": "integer", "minimum": 0},
+          "prev7": {"type": "integer", "minimum": 0},
+          "narrative": {"type": "string"},
+          "examples": {"type": "array", "items": {"$ref": "#/$defs/summaryReport"}}
+        },
+        "additionalProperties": false
+      }
+    },
+    "containment_impact": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["score", "matched", "narrative", "report"],
+        "properties": {
+          "score": {"type": "integer", "minimum": 0},
+          "matched": {"$ref": "#/$defs/stringArray"},
+          "narrative": {"type": "string"},
+          "report": {"$ref": "#/$defs/containmentReport"}
+        },
+        "additionalProperties": false
       }
     },
     "last_24h": {
       "type": "object",
-      "required": ["cutoff", "count", "reports"],
+      "required": ["cutoff", "count", "cloud_count", "ai_count", "vendor_hits", "reports"],
       "properties": {
-        "cutoff": { "type": "string", "format": "date-time" },
-        "count": { "type": "integer", "minimum": 0 },
-        "reports": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/report" }
-        }
-      }
+        "cutoff": {"type": "string", "format": "date-time"},
+        "count": {"type": "integer", "minimum": 0},
+        "cloud_count": {"type": "integer", "minimum": 0},
+        "ai_count": {"type": "integer", "minimum": 0},
+        "vendor_hits": {"$ref": "#/$defs/stringArray"},
+        "reports": {"type": "array", "items": {"$ref": "#/$defs/report"}}
+      },
+      "additionalProperties": false
     }
   },
+  "additionalProperties": false,
   "$defs": {
+    "stringArray": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "summaryReport": {
+      "type": "object",
+      "required": ["id", "name", "url", "publisher", "created"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string"},
+        "url": {"type": "string"},
+        "publisher": {"type": "string"},
+        "created": {"type": "string", "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "vendorWatch": {
+      "type": "object",
+      "required": ["vendor", "count", "reports"],
+      "properties": {
+        "vendor": {"type": "string"},
+        "count": {"type": "integer", "minimum": 0},
+        "reports": {"type": "array", "items": {"$ref": "#/$defs/summaryReport"}}
+      },
+      "additionalProperties": false
+    },
     "leadReport": {
       "type": "object",
-      "required": ["id", "name", "url", "publisher", "confidence", "source_type", "source_reliability", "tlp"]
+      "required": [
+        "id", "name", "url", "publisher", "confidence", "created", "labels",
+        "description", "source_type", "source_reliability", "tlp"
+      ],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string"},
+        "url": {"type": "string"},
+        "publisher": {"type": "string"},
+        "confidence": {"type": "integer", "minimum": 0, "maximum": 100},
+        "created": {"type": "string", "format": "date-time"},
+        "labels": {"$ref": "#/$defs/stringArray"},
+        "description": {"type": "string"},
+        "source_type": {"$ref": "#/$defs/sourceType"},
+        "source_reliability": {"$ref": "#/$defs/reliability"},
+        "tlp": {"$ref": "#/$defs/tlp"}
+      },
+      "additionalProperties": false
+    },
+    "containmentReport": {
+      "type": "object",
+      "required": ["id", "name", "url", "publisher", "confidence", "created", "labels", "tas"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string"},
+        "url": {"type": "string"},
+        "publisher": {"type": "string"},
+        "confidence": {"type": "integer", "minimum": 0, "maximum": 100},
+        "created": {"type": "string", "format": "date-time"},
+        "labels": {"$ref": "#/$defs/stringArray"},
+        "tas": {"$ref": "#/$defs/stringArray"}
+      },
+      "additionalProperties": false
     },
     "report": {
       "type": "object",
       "required": [
-        "id",
-        "name",
-        "url",
-        "publisher",
-        "confidence",
-        "intel_published",
-        "labels",
-        "tas",
-        "description",
-        "iocs",
-        "attack_technique_ids",
-        "mitre_tactics",
-        "source_type",
-        "source_reliability",
-        "tlp",
-        "valid_until",
-        "revoked",
+        "id", "name", "url", "publisher", "confidence", "created",
+        "intel_published", "labels", "tas", "description", "iocs",
+        "attack_technique_ids", "mitre_tactics", "source_type",
+        "source_reliability", "tlp", "valid_until", "revoked",
         "analyst_disposition"
       ],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "name": { "type": "string" },
-        "url": { "type": "string" },
-        "publisher": { "type": "string" },
-        "confidence": { "type": "integer", "minimum": 0, "maximum": 100 },
-        "intel_published": { "type": "string", "format": "date-time" },
-        "labels": { "type": "array", "items": { "type": "string" } },
-        "tas": { "type": "array", "items": { "type": "string" } },
-        "description": { "type": "string" },
-        "iocs": { "type": "object" },
-        "attack_technique_ids": { "type": "array", "items": { "type": "string", "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$" } },
-        "mitre_tactics": { "type": "array", "items": { "type": "string" } },
-        "source_type": { "enum": ["rss", "slack", "splunk", "opencti", "stix", "unknown"] },
-        "source_reliability": { "enum": ["A", "B", "C", "D", "E", "F"] },
-        "tlp": { "enum": ["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"] },
-        "valid_until": { "type": "string" },
-        "revoked": { "type": "boolean" },
-        "analyst_disposition": { "enum": ["unreviewed", "actioned", "confirmed", "false_positive", "expired", "revoked"] }
-      }
-    }
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string"},
+        "url": {"type": "string"},
+        "publisher": {"type": "string"},
+        "confidence": {"type": "integer", "minimum": 0, "maximum": 100},
+        "created": {"type": "string", "format": "date-time"},
+        "intel_published": {"type": "string", "format": "date-time"},
+        "published": {"type": "string"},
+        "labels": {"$ref": "#/$defs/stringArray"},
+        "tas": {"$ref": "#/$defs/stringArray"},
+        "t1_vendors": {"$ref": "#/$defs/stringArray"},
+        "t2_vendors": {"$ref": "#/$defs/stringArray"},
+        "description": {"type": "string"},
+        "iocs": {
+          "type": "object",
+          "required": ["cve", "ipv4", "url", "md5", "sha1", "sha256", "domain"],
+          "properties": {
+            "cve": {"$ref": "#/$defs/stringArray"},
+            "ipv4": {"$ref": "#/$defs/stringArray"},
+            "url": {"$ref": "#/$defs/stringArray"},
+            "md5": {"$ref": "#/$defs/stringArray"},
+            "sha1": {"$ref": "#/$defs/stringArray"},
+            "sha256": {"$ref": "#/$defs/stringArray"},
+            "domain": {"$ref": "#/$defs/stringArray"}
+          },
+          "additionalProperties": false
+        },
+        "attack_technique_ids": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"},
+          "uniqueItems": true
+        },
+        "mitre_tactics": {"$ref": "#/$defs/stringArray"},
+        "source_type": {"$ref": "#/$defs/sourceType"},
+        "source_reliability": {"$ref": "#/$defs/reliability"},
+        "tlp": {"$ref": "#/$defs/tlp"},
+        "valid_until": {
+          "anyOf": [
+            {"const": ""},
+            {"type": "string", "format": "date-time"}
+          ]
+        },
+        "revoked": {"type": "boolean"},
+        "analyst_disposition": {
+          "enum": ["unreviewed", "actioned", "confirmed", "false_positive", "expired", "revoked"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "sourceType": {"enum": ["rss", "slack", "splunk", "opencti", "stix", "unknown"]},
+    "reliability": {"enum": ["A", "B", "C", "D", "E", "F"]},
+    "tlp": {"enum": ["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"]}
   }
 }

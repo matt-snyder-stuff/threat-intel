@@ -23,6 +23,7 @@ from sources.base import (
     save_pickle,
     save_published,
     lifecycle_fields,
+    atomic_write_json,
     _VRE1, _VRE2,
     VENDORS_TIER1, VENDORS_TIER2,
 )
@@ -177,8 +178,7 @@ def run():
 
     # Build raw JSON structure that build.py reads for descriptions
     raw = {"data": {"reports": {"edges": edges}}}
-    with open(raw_out, "w") as f:
-        json.dump(raw, f)
+    atomic_write_json(raw_out, raw)
     print(f"Wrote {raw_out}", file=sys.stderr)
 
     # Step 2: Process into items list
@@ -215,7 +215,7 @@ def run():
             "id":                   n["id"],
             "name":                 name,
             "created":              created,
-            "confidence":           n.get("confidence") or 0,
+            "confidence":           max(0, min(100, int(n.get("confidence") or 0))),
             "all_labels":           labels,
             "labels":               labels,   # alias — build.py uses both keys
             "publisher":            publisher,
@@ -223,12 +223,10 @@ def run():
             "tas":                  tas,
             "t1_vendors":           t1_vend,
             "t2_vendors":           t2_vend,
-            # description injected by build.py from raw JSON; empty here is fine
-            "description":          "",
+            "description":          desc,
             "attack_technique_ids": [],
             "mitre_tactics":        [],
-            # iocs populated from description after build.py enrichment
-            "iocs":                 {},
+            "iocs":                 extract_iocs(desc),
             **lifecycle_fields(publisher, "opencti"),
         })
 

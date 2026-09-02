@@ -30,8 +30,9 @@ REQUIRED_ITEM_FIELDS = [
 ]
 
 REQUIRED_JSON_KEYS = [
-    "generated_at", "schema_version", "window_days", "summary",
-    "cloud_clusters", "last_24h",
+    "generated_at", "schema_version", "window_days", "cutoff", "summary",
+    "executive_overview", "cloud_clusters", "threat_actors", "vendor_watch",
+    "industry_trends", "containment_impact", "last_24h",
 ]
 
 IOC_TYPES = {"cve", "ipv4", "url", "md5", "sha1", "sha256", "domain"}
@@ -197,6 +198,24 @@ def validate_json(path):
     for key in REQUIRED_JSON_KEYS:
         if not check(key in d, f"missing key '{key}'"):
             errors += 1
+
+    summary = d.get("summary", {})
+    if summary.get("cloud_clusters") != len(d.get("cloud_clusters", [])):
+        print("  FAIL: summary.cloud_clusters does not match cloud_clusters length")
+        errors += 1
+    last_24h = d.get("last_24h", {})
+    if last_24h.get("count") != len(last_24h.get("reports", [])):
+        print("  FAIL: last_24h.count does not match reports length")
+        errors += 1
+
+    report_ids = [
+        report.get("id")
+        for cluster in d.get("cloud_clusters", [])
+        for report in cluster.get("reports", [])
+    ]
+    if len(report_ids) != len(set(report_ids)):
+        print("  FAIL: duplicate report IDs exist across cloud clusters")
+        errors += 1
 
     clusters = d.get("cloud_clusters", [])
     for cluster in clusters:

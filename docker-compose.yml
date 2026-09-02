@@ -1,7 +1,17 @@
+x-pipeline-security: &pipeline-security
+  user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+
 services:
 
   # ── RSS source (no credentials needed) ─────────────────────────────────────
   rss:
+    <<: *pipeline-security
     build: .
     profiles: [rss]
     command: ["--source", "rss", "--build"]
@@ -13,6 +23,7 @@ services:
 
   # ── OpenCTI source ──────────────────────────────────────────────────────────
   opencti:
+    <<: *pipeline-security
     build: .
     profiles: [opencti]
     command: ["--source", "opencti", "--build"]
@@ -25,6 +36,7 @@ services:
 
   # ── Slack source ────────────────────────────────────────────────────────────
   slack:
+    <<: *pipeline-security
     build: .
     profiles: [slack]
     command: ["--source", "slack", "--build"]
@@ -37,6 +49,7 @@ services:
 
   # ── Splunk source ───────────────────────────────────────────────────────────
   splunk:
+    <<: *pipeline-security
     build: .
     profiles: [splunk]
     command: ["--source", "splunk", "--build"]
@@ -50,10 +63,14 @@ services:
       SPLUNK_SEARCH: ${SPLUNK_SEARCH:-}
       SPLUNK_EARLIEST: ${SPLUNK_EARLIEST:--30d@d}
       SPLUNK_VERIFY_SSL: ${SPLUNK_VERIFY_SSL:-true}
+      SPLUNK_ALLOWED_INDEXES: ${SPLUNK_ALLOWED_INDEXES:-threat_intel,main}
+      SPLUNK_MAX_LOOKBACK_DAYS: ${SPLUNK_MAX_LOOKBACK_DAYS:-90}
+      SPLUNK_MAX_RESULTS: ${SPLUNK_MAX_RESULTS:-500}
       CUTOFF_DAYS: ${CUTOFF_DAYS:-30}
 
   # ── STIX/TAXII source ───────────────────────────────────────────────────────
   stix:
+    <<: *pipeline-security
     build: .
     profiles: [stix]
     command: ["--source", "stix", "--build"]
@@ -75,10 +92,16 @@ services:
   # ── Static file server — serve threat-watch.html + threat-watch-data.json ──
   # docker compose --profile serve up
   serve:
-    image: nginx:alpine
+    image: nginxinc/nginx-unprivileged:1.27-alpine@sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0
     profiles: [serve]
     ports:
-      - "${SERVE_PORT:-8080}:80"
+      - "${SERVE_PORT:-8080}:8080"
     volumes:
       - ./data:/usr/share/nginx/html:ro
     restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777

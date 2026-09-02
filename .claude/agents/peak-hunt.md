@@ -470,86 +470,19 @@ log["data_gaps"].append({
 })
 ```
 
-### 3b. Splunk REST API helper
+### 3b. Policy-enforcing Splunk client
 
-Use this for all live queries. Never print credentials.
+Use `guardrails.splunk.count_then_search` for all live queries. Never print credentials. Direct REST calls are prohibited because they bypass index, time, result-volume, and audit controls.
 
 ```python
-#!/usr/bin/env python3
-import base64, json, os, sys, time
-from urllib import request, error
-from urllib.parse import urlencode
+from guardrails.splunk import count_then_search
 
-BASE   = os.environ.get("SPLUNK_URL", "").rstrip("/")
-TOKEN  = os.environ.get("SPLUNK_TOKEN")
-USER   = os.environ.get("SPLUNK_USERNAME")
-PW     = os.environ.get("SPLUNK_PASSWORD")
-VERIFY = os.environ.get("SPLUNK_VERIFY_SSL", "true").lower() != "false"
-
-def auth():
-    if TOKEN:
-        return {"Authorization": f"Bearer {TOKEN}"}
-    creds = base64.b64encode(f"{USER}:{PW}".encode()).decode()
-    return {"Authorization": f"Basic {creds}"}
-
-def ssl_ctx():
-    if not VERIFY:
-        import ssl
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        return ctx
-    return None
-
-def splunk_search(spl, earliest="-7d", latest="now", limit=500, label=""):
-    if not BASE:
-        return None  # offline mode
-
-    hdrs = {**auth(), "Content-Type": "application/x-www-form-urlencoded"}
-    search_str = spl if spl.lstrip().startswith("search") else "search " + spl
-    body = urlencode({
-        "search": search_str,
-        "earliest_time": earliest,
-        "latest_time": latest,
-        "output_mode": "json",
-        "exec_mode": "normal"
-    }).encode()
-
-    ctx = ssl_ctx()
-    try:
-        req = request.Request(f"{BASE}/services/search/jobs", data=body, headers=hdrs, method="POST")
-        with request.urlopen(req, context=ctx, timeout=30) as r:
-            sid = json.loads(r.read())["sid"]
-    except Exception as e:
-        print(f"[SPLUNK ERROR] Failed to submit '{label}': {e}")
-        return None
-
-    for attempt in range(120):
-        time.sleep(2)
-        try:
-            req2 = request.Request(f"{BASE}/services/search/jobs/{sid}?output_mode=json", headers=auth())
-            with request.urlopen(req2, context=ctx, timeout=30) as r:
-                st = json.loads(r.read())
-            state = st["entry"][0]["content"]["dispatchState"]
-            if state == "DONE":
-                break
-            if state == "FAILED":
-                print(f"[SPLUNK ERROR] Search failed: {label}")
-                return None
-        except Exception as e:
-            print(f"[SPLUNK WARN] Poll attempt {attempt} failed: {e}")
-            continue
-
-    try:
-        req3 = request.Request(
-            f"{BASE}/services/search/jobs/{sid}/results?output_mode=json&count={limit}",
-            headers=auth())
-        with request.urlopen(req3, context=ctx, timeout=30) as r:
-            results = json.loads(r.read()).get("results", [])
-        return results
-    except Exception as e:
-        print(f"[SPLUNK ERROR] Failed to fetch results for '{label}': {e}")
-        return None
+results = count_then_search(
+    "index=security <broad-filter> | stats count",
+    "index=security <specific-filter> | stats count by host, user, dest_ip",
+    "-7d", threshold=1000, max_results=500,
+    agent="peak-hunt", operator="<operator>", model="<model>",
+)
 ```
 
 ### 3c. Hypothesis queries — COUNT-FIRST, broad-to-narrow iteration

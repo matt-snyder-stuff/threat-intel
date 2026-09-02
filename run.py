@@ -37,6 +37,7 @@ SOURCES = {
             "SPLUNK_FIELD_NAME", "SPLUNK_FIELD_DESC", "SPLUNK_FIELD_URL",
             "SPLUNK_FIELD_PUBLISHER", "SPLUNK_FIELD_TIME",
             "SPLUNK_VERIFY_SSL", "CUTOFF_DAYS", "PKL_OUT", "PUB_SIDECAR",
+            "SPLUNK_ALLOWED_INDEXES", "SPLUNK_MAX_LOOKBACK_DAYS", "SPLUNK_MAX_RESULTS",
         ],
         "description": "Run a Splunk search via the REST API and use results as threat intel items.",
     },
@@ -150,9 +151,9 @@ def main():
     run()
 
     if args.build:
-        build_script = os.path.join(os.path.dirname(__file__), "generator", "build.py")
-        print(f"\n[run.py] Running {build_script}...", file=sys.stderr)
-        result = subprocess.run([sys.executable, build_script])
+        repository_root = os.path.dirname(os.path.abspath(__file__))
+        print("\n[run.py] Running generator.build...", file=sys.stderr)
+        result = subprocess.run([sys.executable, "-m", "generator.build"], cwd=repository_root)
         if result.returncode != 0:
             print(f"[run.py] build.py exited with code {result.returncode}", file=sys.stderr)
             sys.exit(result.returncode)

@@ -8,8 +8,8 @@ Extracted from generator/fetch_and_process.py so every source can import:
   - refang(), extract_cves(), extract_iocs(), classify_ioc()
   - save_pickle(), save_published()
 """
-import json, os, pickle, re
-from datetime import timezone
+import json, os, pickle, re, tempfile
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 
@@ -159,6 +159,41 @@ PUBLISHER_CONFIDENCE = {
     "SOCRadar":                70,
 }
 
+# Reliability describes the publisher's reporting process. It is intentionally
+# maintained separately from item confidence, which can vary claim by claim.
+PUBLISHER_RELIABILITY = {
+    "CISA": "A",
+    "Palo Alto Unit 42": "A",
+    "Mandiant": "A",
+    "CrowdStrike": "A",
+    "Recorded Future": "A",
+    "Google Security Blog": "A",
+    "Google Cloud Blog": "A",
+    "Microsoft Security Blog": "A",
+    "Microsoft Security Response Center": "A",
+    "AWS Security Blog": "A",
+    "Wiz": "A",
+    "Check Point Research": "B",
+    "Kaspersky Securelist": "B",
+    "SentinelOne": "B",
+    "Cisco Talos": "B",
+    "Bitdefender Labs": "B",
+    "The DFIR Report": "B",
+    "VirusTotal": "B",
+    "Malware Traffic Analysis": "B",
+    "Cloudflare": "B",
+    "Datadog": "B",
+    "Snyk": "B",
+    "ReversingLabs": "B",
+    "Sekoia": "B",
+    "HarfangLab": "B",
+    "Krebs on Security": "B",
+    "The Record": "B",
+    "BleepingComputer": "B",
+    "CyberScoop": "B",
+    "SecurityWeek": "B",
+}
+
 
 def confidence_for_publisher(publisher_name):
     """Return the confidence score for a publisher name, defaulting to 60."""
@@ -171,14 +206,7 @@ def source_reliability_for_publisher(publisher_name):
     This grades the publisher's established reporting process, not whether a
     specific claim is true. Item confidence remains a separate field.
     """
-    confidence = confidence_for_publisher(publisher_name)
-    if confidence >= 85:
-        return "A"
-    if confidence >= 70:
-        return "B"
-    if confidence >= 60:
-        return "C"
-    return "D"
+    return PUBLISHER_RELIABILITY.get(publisher_name, "C")
 
 
 def lifecycle_fields(publisher, source_type, tlp=None, valid_until="", revoked=False):
@@ -411,23 +439,83 @@ def extract_iocs(text: str) -> dict:
 
 # ── Pickle / sidecar writers ──────────────────────────────────────────────────
 
+REQUIRED_ITEM_FIELDS = {
+    "id", "name", "created", "confidence", "all_labels", "labels",
+    "publisher", "url", "tas", "t1_vendors", "t2_vendors", "description",
+    "attack_technique_ids", "mitre_tactics", "iocs", "source_type",
+    "source_reliability", "tlp", "valid_until", "revoked",
+    "analyst_disposition",
+}
+IOC_TYPES = {"cve", "ipv4", "url", "md5", "sha1", "sha256", "domain"}
+
+
+def validate_item(item):
+    """Reject malformed normalized items before they reach persistent state."""
+    missing = REQUIRED_ITEM_FIELDS - set(item)
+    if missing:
+        raise ValueError(f"item is missing required fields: {', '.join(sorted(missing))}")
+    if not isinstance(item["id"], str) or not item["id"]:
+        raise ValueError("item id must be a non-empty string")
+    if not isinstance(item["created"], datetime) or item["created"].tzinfo is None:
+        raise ValueError("item created must be a timezone-aware datetime")
+    if not isinstance(item["confidence"], int) or not 0 <= item["confidence"] <= 100:
+        raise ValueError("item confidence must be an integer from 0 through 100")
+    for field in ("all_labels", "labels", "tas", "t1_vendors", "t2_vendors", "attack_technique_ids", "mitre_tactics"):
+        if not isinstance(item[field], list):
+            raise ValueError(f"item {field} must be a list")
+    if not isinstance(item["iocs"], dict) or set(item["iocs"]) != IOC_TYPES:
+        raise ValueError("item iocs must contain exactly the canonical IOC types")
+    if any(not isinstance(values, list) for values in item["iocs"].values()):
+        raise ValueError("every item IOC collection must be a list")
+    if item["source_reliability"] not in set("ABCDEF"):
+        raise ValueError("item source_reliability must be A through F")
+    if item["tlp"] not in {"TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"}:
+        raise ValueError("item tlp is invalid")
+    if not isinstance(item["revoked"], bool):
+        raise ValueError("item revoked must be boolean")
+
+def _atomic_write(path, mode, writer):
+    """Write a complete sibling temporary file and atomically replace *path*."""
+    destination = os.path.abspath(path)
+    os.makedirs(os.path.dirname(destination), exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{os.path.basename(path)}.", dir=os.path.dirname(destination))
+    try:
+        with os.fdopen(fd, mode) as handle:
+            writer(handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, destination)
+    except Exception:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def atomic_write_text(path, content):
+    _atomic_write(path, "w", lambda handle: handle.write(content))
+
+
+def atomic_write_json(path, value):
+    _atomic_write(path, "w", lambda handle: json.dump(value, handle))
+
 def save_pickle(items, cutoff_dt, pkl_out):
     """Write ``{"items": items, "cutoff": cutoff_dt}`` to *pkl_out*.
 
     Also writes a sibling ``*-cutoff.txt`` with the cutoff ISO string.
     """
+    for item in items:
+        validate_item(item)
     state = {"items": items, "cutoff": cutoff_dt}
-    with open(pkl_out, "wb") as f:
-        pickle.dump(state, f)
+    _atomic_write(pkl_out, "wb", lambda handle: pickle.dump(state, handle))
     cutoff_txt = pkl_out.replace(".pkl", "-cutoff.txt")
-    with open(cutoff_txt, "w") as f:
-        f.write(cutoff_dt.isoformat())
+    atomic_write_text(cutoff_txt, cutoff_dt.isoformat())
 
 
 def save_published(pub_dates, out_path):
     """Write the published-dates sidecar JSON ``{id: published_iso}``."""
-    with open(out_path, "w") as f:
-        json.dump(pub_dates, f)
+    atomic_write_json(out_path, pub_dates)
 
 
 # ── Label auto-detection (used by Slack + RSS sources) ───────────────────────

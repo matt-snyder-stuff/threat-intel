@@ -80,7 +80,7 @@ run-stix:
 
 build:
 	@mkdir -p data
-	@[ -f .env ] && set -a && . ./.env && set +a; $(DATA_ENV) python3 generator/build.py
+	@[ -f .env ] && set -a && . ./.env && set +a; $(DATA_ENV) python3 -m generator.build
 
 serve:
 	@echo "Serving at http://localhost:8080 — open threat-watch.html in your browser"
@@ -94,9 +94,8 @@ clean:
 # ── Test targets ───────────────────────────────────────────────────────────────
 
 test:
-	@[ -f .env ] && set -a && . ./.env && set +a; \
-	python3 run.py --source rss --build && \
-	PKL_IN=/tmp/tw-30d-processed.pkl JSON_IN=/tmp/threat-watch-data.json python3 tests/validate.py
+	python3 -m unittest tests.test_security_contracts tests.test_lifecycle \
+	  tests.test_splunk_policy tests.test_source_contracts
 
 test-docker:
 	@mkdir -p /tmp/ti-test-rss /tmp/ti-test-opencti /tmp/ti-test-splunk

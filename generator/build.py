@@ -3,6 +3,7 @@
 import json, os, re, pickle, html, sys
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict, Counter
+from sources.base import atomic_write_text
 
 # Input paths — set PKL_IN / RAW_IN to match whatever PKL_OUT / RAW_OUT you used
 # when running the source. Defaults match the sources' own defaults.
@@ -3384,8 +3385,7 @@ OUT = f"""<!doctype html>
 </body>
 </html>"""
 
-with open(HTML_OUT, "w") as f:
-    f.write(OUT)
+atomic_write_text(HTML_OUT, OUT)
 
 print(f"Wrote {HTML_OUT} ({len(OUT)} bytes)")
 print(f"  Reports: {n_total}  (cloud {n_cloud} / AI {n_ai})")
@@ -3622,8 +3622,7 @@ tw_data = {
     },
 }
 
-with open(JSON_OUT, "w") as f:
-    json.dump(tw_data, f, default=_dt, indent=2)
+atomic_write_text(JSON_OUT, json.dumps(tw_data, default=_dt, indent=2))
 
 print(f"Wrote {JSON_OUT} ({len(tw_data['last_24h']['reports'])} last-24h reports, "
       f"{len(tw_data['cloud_clusters'])} clusters, "
