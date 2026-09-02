@@ -3,6 +3,7 @@ output/
 data/*.pkl
 data/*.json
 data/*.html
+data/*-cutoff.txt
 
 # Temp files used during the build pipeline
 /tmp/tw-30d.json
@@ -14,6 +15,10 @@ data/*.html
 
 # Generated runtime outputs — not committed
 demo/sec1390/outputs/
+demo/prebuilt/tw-30d-processed.pkl
+demo/prebuilt/tw-30d-processed-cutoff.txt
+demo/prebuilt/tw-30d-published.json
+demo/prebuilt/review-state.json
 
 # Environment
 .env

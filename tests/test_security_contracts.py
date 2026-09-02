@@ -57,6 +57,19 @@ class SecurityContracts(unittest.TestCase):
         self.assertIn("path=confidence", searches)
         self.assertNotIn("eval confidence = 0", searches)
 
+    def test_conference_quickstart_is_packaged(self):
+        self.assertTrue((ROOT / "quickstart.py").is_file())
+        self.assertTrue((ROOT / "sample-data" / "reports.json").is_file())
+        self.assertTrue((ROOT / "demo" / "prebuilt" / "threat-watch.html").is_file())
+        self.assertTrue((ROOT / "docs" / "dashboard-preview.png").is_file())
+        self.assertTrue((ROOT / "docs" / "repository-qr.png").is_file())
+        run_py = (ROOT / "run.py").read_text()
+        makefile = (ROOT / "Makefile").read_text()
+        generator = (ROOT / "generator" / "build.py").read_text()
+        self.assertIn('"sample": {', run_py)
+        self.assertIn("quickstart:", makefile)
+        self.assertIn("overflow-x: hidden", generator)
+
 
 if __name__ == "__main__":
     unittest.main()

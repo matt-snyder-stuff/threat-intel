@@ -1,15 +1,20 @@
-.PHONY: help run-rss run-opencti run-slack run-splunk run-stix build serve clean status review \
-        docker-rss docker-opencti docker-slack docker-splunk docker-stix docker-serve \
+.PHONY: help demo quickstart run-rss run-opencti run-slack run-splunk run-stix build serve clean status review \
+        docker-sample docker-rss docker-opencti docker-slack docker-splunk docker-stix docker-serve \
         test test-docker \
         opencti-up opencti-seed opencti-down \
         tf-init tf-plan tf-apply tf-destroy
 
 SOURCE ?= rss
+PORT ?= 8080
 
 help:
 	@echo "Threat Intel Pipeline"
 	@echo ""
-	@echo "Laptop usage (requires .env):"
+	@echo "Conference quickstart (no credentials or network):"
+	@echo "  make demo          Build the deterministic sample dashboard"
+	@echo "  make quickstart    Build, open, and serve it at http://127.0.0.1:$(PORT)"
+	@echo ""
+	@echo "Live-source usage (.env required except for RSS):"
 	@echo "  make run-rss       Fetch from RSS feeds and build the dashboard"
 	@echo "  make run-opencti   Fetch from OpenCTI and build the dashboard"
 	@echo "  make run-slack     Fetch from Slack and build the dashboard"
@@ -20,6 +25,7 @@ help:
 	@echo "  make clean         Remove generated pipeline files"
 	@echo ""
 	@echo "Docker usage:"
+	@echo "  make docker-sample    docker compose --profile sample up --build"
 	@echo "  make docker-rss       docker compose --profile rss up --build"
 	@echo "  make docker-opencti   docker compose --profile opencti up --build"
 	@echo "  make docker-stix      docker compose --profile stix up --build"
@@ -51,6 +57,14 @@ status:
 
 review:
 	python3 -m operations.review_state $(ARGS)
+
+# ── Conference quickstart ────────────────────────────────────────────────────
+
+demo:
+	python3 quickstart.py
+
+quickstart:
+	python3 quickstart.py --serve --port $(PORT)
 
 # ── Laptop targets ─────────────────────────────────────────────────────────────
 # Outputs go to ./data/ so `make serve` works immediately after any run-* target
@@ -87,13 +101,13 @@ build:
 	@[ -f .env ] && set -a && . ./.env && set +a; $(DATA_ENV) python3 -m generator.build
 
 serve:
-	@echo "Serving at http://localhost:8080 — open threat-watch.html in your browser"
+	@echo "Serving at http://127.0.0.1:$(PORT)/threat-watch.html"
 	@[ -f data/threat-watch.html ] || (echo "ERROR: data/threat-watch.html not found — run make run-rss (or another source) first" && exit 1)
-	@python3 -m http.server 8080 --directory data
+	@python3 -m http.server $(PORT) --bind 127.0.0.1 --directory data
 
 clean:
 	rm -f /tmp/tw-30d*.json /tmp/tw-30d*.pkl /tmp/threat-watch*.html /tmp/threat-watch*.json
-	rm -f data/tw-30d*.json data/tw-30d*.pkl data/threat-watch*.html data/threat-watch*.json
+	rm -f data/tw-30d*.json data/tw-30d*.pkl data/*-cutoff.txt data/threat-watch*.html data/threat-watch*.json
 
 # ── Test targets ───────────────────────────────────────────────────────────────
 
@@ -140,6 +154,9 @@ test-docker:
 	  --entrypoint python3 threat-intel-pipeline:dev tests/validate.py
 
 # ── Docker targets ─────────────────────────────────────────────────────────────
+
+docker-sample:
+	docker compose --profile sample up --build
 
 docker-rss:
 	docker compose --profile rss up --build

@@ -8,6 +8,7 @@ RUN groupadd --gid 10001 app \
     && chown app:app /data
 
 COPY sources/ sources/
+COPY sample-data/ sample-data/
 COPY generator/ generator/
 COPY guardrails/ guardrails/
 COPY operations/ operations/
@@ -34,7 +35,7 @@ VOLUME ["/data"]
 
 USER app
 
-# Default: fetch from RSS and build. Override SOURCE and pass --build via CMD or
-# docker run ... python3 run.py --source opencti --build
+# Default: build the offline sample. Select another source in the command, for example:
+# docker run ... threat-intel-pipeline --source opencti --build
 ENTRYPOINT ["python3", "run.py"]
-CMD ["--source", "rss", "--build"]
+CMD ["--source", "sample", "--build"]

@@ -1,0 +1,2369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Threat Watch — Past 30 days</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #050e1a;
+      --bg-card:   #081525;
+      --bg-elev:   #0d1e30;
+      --border:    rgba(255,255,255,0.08);
+      --text:      #e8edf4;
+      --text-dim:  #9aafc0;
+      --text-fade: #5a7080;
+      --accent:    #ff6b35;
+      --accent-2:  #ff8c5a;
+      --cloud:     #4ad6ff;
+      --ai:        #b97cff;
+      --good:      #3ee08f;
+      --bad:       #ff5e5e;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    a { color: inherit; }
+    .topbar {
+      position: sticky; top: 0; z-index: 500;
+      background: rgba(5, 14, 26, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+    }
+    .topbar-inner {
+      max-width: 1280px; margin: 0 auto;
+      display: flex; align-items: center;
+      height: 52px; gap: 24px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; letter-spacing: 0.06em;
+      font-size: 13px;
+    }
+    .brand-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.65; transform: scale(0.9); }
+    }
+    .brand-name { color: var(--text); }
+    .brand-product {
+      font-weight: 400; color: var(--text-fade); font-size: 12px;
+    }
+    .brand-sep { color: var(--text-fade); margin: 0 4px; }
+    .nav-links {
+      display: flex; gap: 4px; align-items: center;
+      margin-left: auto;
+    }
+    .nav-links a {
+      font-size: 12px; font-weight: 500;
+      color: var(--text-dim);
+      text-decoration: none;
+      padding: 5px 11px;
+      border-radius: 5px;
+      transition: all 0.12s;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-fade);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .status-dot {
+      display: inline-block; width: 7px; height: 7px;
+      border-radius: 50%; background: var(--good);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 36px 28px 80px; }
+    .section {
+      margin-bottom: 60px;
+      scroll-margin-top: 70px;
+    }
+    .section-head {
+      display: flex; align-items: baseline;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+      margin-bottom: 26px;
+      flex-wrap: wrap; gap: 10px;
+    }
+    .section-head h2 {
+      font-size: 20px; font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .section-sub {
+      font-size: 13px; color: var(--text-dim);
+      line-height: 1.55; margin-bottom: 18px;
+    }
+    .section-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-fade);
+    }
+    .kicker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.16em;
+      color: var(--accent);
+      padding: 3px 8px;
+      background: rgba(255, 107, 53, 0.1);
+      border: 1px solid rgba(255, 107, 53, 0.25);
+      border-radius: 4px;
+    }
+    .count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-fade);
+    }
+
+    /* Hero */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 40px;
+      align-items: center;
+      padding: 40px 0 36px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+    .hero-headline {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.18em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero-title {
+      font-size: 42px; font-weight: 800;
+      line-height: 1.1; letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    .accent { color: var(--accent-2); }
+    .hero-sub {
+      font-size: 15px; color: var(--text-dim);
+      line-height: 1.6; max-width: 560px;
+      margin-bottom: 16px;
+    }
+    .hero-meta {
+      display: flex; align-items: center;
+      gap: 10px; flex-wrap: wrap;
+      font-size: 12px; color: var(--text-fade);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .dot {
+      width: 3px; height: 3px;
+      background: var(--text-fade);
+      border-radius: 50%;
+    }
+    .stat-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      min-width: 200px;
+    }
+    .stat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .stat.ai { border-color: rgba(185,124,255,0.3); }
+    .stat.cloud { border-color: rgba(74,214,255,0.3); }
+    .stat-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-fade);
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 32px; font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+    }
+    .stat.ai .stat-value { color: var(--ai); }
+    .stat.cloud .stat-value { color: var(--cloud); }
+
+    /* Industry Pulse list */
+    .pulse-list {
+      display: flex; flex-direction: column;
+      gap: 0;
+    }
+    .pulse-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 90px 60px;
+      gap: 14px;
+      align-items: baseline;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 13px;
+      transition: background 0.1s;
+    }
+    .pulse-row:first-child {
+      border-top: 1px solid var(--border);
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-fade);
+    }
+    .pulse-row:hover { background: rgba(255,255,255,0.02); }
+    .pulse-pub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-fade);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .pulse-title a {
+      color: var(--text); text-decoration: none;
+    }
+    .pulse-title a:hover { color: var(--accent-2); }
+    .pulse-conf {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-fade);
+      text-align: right;
+    }
+
+    /* Filter bar */
+    .filter-head {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      font-size: 12px; font-weight: 600;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .filter-row {
+      display: flex; align-items: center;
+      flex-wrap: wrap; gap: 8px;
+      width: 100%;
+    }
+    .filter-divider {
+      width: 1px; height: 18px;
+      background: var(--border); flex-shrink: 0;
+    }
+    .reset {
+      font-size: 11px; color: var(--text-fade);
+      cursor: pointer; transition: color 0.12s;
+    }
+    .reset:hover { color: var(--accent); }
+
+    /* Footer */
+    .footer {
+      background: var(--bg-elev);
+      border-top: 1px solid var(--border);
+      padding: 40px 28px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+      font-size: 13px; color: var(--text-dim);
+      max-width: 1280px; margin: 0 auto;
+    }
+    .footer h4 {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-fade);
+      margin-bottom: 12px;
+    }
+    .footer ul {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .footer ul li { font-size: 12px; color: var(--text-dim); }
+    .footer-stat {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--text-dim);
+      padding: 4px 0;
+    }
+
+    /* Cloud Threat Watch grid */
+    .cloud-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
+    }
+    .threat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 24px;
+      display: flex; flex-direction: column;
+      transition: border-color 0.15s ease;
+      cursor: default;
+    }
+    .threat-card:hover { border-color: rgba(255, 107, 53, 0.45); }
+    .card-eyebrow {
+      display: flex; align-items: center;
+      gap: 8px; margin-bottom: 12px;
+    }
+    .card-pub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-fade);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      font-weight: 700;
+      flex: 1;
+    }
+    .confidence-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .confidence-dot.high { background: var(--good); }
+    .confidence-dot.medium { background: var(--accent); }
+    .confidence-dot.low { background: var(--text-fade); }
+    .card-title {
+      font-size: 15px; font-weight: 700;
+      line-height: 1.35; margin-bottom: 12px; flex: 1;
+    }
+    .card-title a {
+      text-decoration: none;
+      color: var(--text);
+      transition: color 0.12s;
+    }
+    .card-title a:hover { color: var(--accent-2); }
+    .card-tags {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 10px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 10px;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border: 1px solid transparent;
+    }
+    .tag.cloud-tag {
+      background: rgba(74, 214, 255, 0.1);
+      color: var(--cloud);
+      border-color: rgba(74, 214, 255, 0.25);
+    }
+    .tag.ai-tag {
+      background: rgba(185, 124, 255, 0.1);
+      color: var(--ai);
+      border-color: rgba(185, 124, 255, 0.25);
+    }
+    .tag.threat-tag {
+      background: rgba(255, 107, 53, 0.1);
+      color: var(--accent-2);
+      border-color: rgba(255, 107, 53, 0.25);
+    }
+    .tag.neutral-tag {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-fade);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .card-reach {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-fade);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-top: auto;
+      padding-top: 12px;
+    }
+    .card-reach strong { color: var(--text); }
+
+    /* Threat Actor grid */
+    .actor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .actor-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-2);
+      border-radius: 10px;
+      padding: 18px 20px;
+      cursor: default;
+      transition: border-color 0.15s ease;
+    }
+    .actor-card:hover { border-color: var(--accent); }
+    .actor-name {
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 8px; line-height: 1.25;
+    }
+    .actor-stat {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-fade);
+      display: flex; gap: 14px; flex-wrap: wrap;
+    }
+    .actor-stat strong { color: var(--text); font-weight: 700; }
+    .delta-html {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    .delta-up { background: rgba(255,94,94,0.12); color: var(--bad); }
+    .delta-down { background: rgba(62,224,143,0.12); color: var(--good); }
+    .delta-flat { color: var(--text-fade); }
+    .delta-new {
+      background: rgba(185, 124, 255, 0.15);
+      color: var(--ai);
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* Filter chips */
+    .filter-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .filter-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-fade);
+    }
+    .report-search {
+      width: min(440px, 100%);
+      min-height: 36px;
+      padding: 7px 11px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      font: 12px 'JetBrains Mono', monospace;
+    }
+    .report-search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .filter-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.12s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .filter-chip:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+    .filter-chip.active-tag {
+      background: rgba(74, 214, 255, 0.15);
+      color: var(--cloud);
+      border-color: rgba(74, 214, 255, 0.4);
+    }
+    .filter-chip.active-tag.ai-active {
+      background: rgba(185, 124, 255, 0.15);
+      color: var(--ai);
+      border-color: rgba(185, 124, 255, 0.4);
+    }
+    .filter-chip.active-tag.actor-active {
+      background: rgba(255, 107, 53, 0.15);
+      color: var(--accent-2);
+      border-color: rgba(255, 107, 53, 0.4);
+    }
+    .reach-chip {
+      background: rgba(62, 224, 143, 0.06);
+      color: var(--good);
+      border-color: rgba(62, 224, 143, 0.25);
+    }
+    .reach-chip:hover { background: rgba(62, 224, 143, 0.12); }
+    .filter-sep {
+      width: 1px; height: 18px;
+      background: var(--border); flex-shrink: 0;
+    }
+    .filter-empty {
+      display: none;
+      grid-column: 1 / -1;
+      padding: 40px;
+      text-align: center;
+      color: var(--text-fade);
+      font-size: 14px;
+    }
+
+    /* Archive table */
+    .archive-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px;
+    }
+    .archive-table th {
+      text-align: left;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-fade);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .archive-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: top;
+    }
+    .archive-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .archive-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-fade);
+      white-space: nowrap;
+    }
+    .archive-title a {
+      color: var(--text);
+      text-decoration: none;
+    }
+    .archive-title a:hover { color: var(--accent-2); }
+
+    /* Vendor watch */
+    .vendor-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .vendor-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 24px;
+    }
+    .vendor-panel h3 {
+      font-size: 14px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .tier-1 h3, h3.tier-1 { color: var(--accent-2); }
+    .tier-2 h3, h3.tier-2 { color: var(--ai); }
+    .vendor-sub {
+      font-size: 12px; color: var(--text-fade);
+      margin-bottom: 16px;
+    }
+    .vendor-list { display: flex; flex-direction: column; gap: 10px; }
+    .vendor-item {
+      display: flex; align-items: baseline;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+    }
+    .vendor-item-name {
+      font-weight: 600; font-size: 13px;
+    }
+    .vendor-item-meta {
+      font-size: 11px; color: var(--text-fade);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .vendor-empty {
+      text-align: center; padding: 30px 20px;
+      color: var(--text-fade); font-size: 13px;
+    }
+
+    /* On your radar */
+    .radar-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .radar-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 24px;
+    }
+    .radar-icon { font-size: 26px; margin-bottom: 10px; }
+    .radar-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      color: var(--text-fade); margin-bottom: 8px;
+    }
+    .radar-head {
+      font-size: 15px; font-weight: 700;
+      margin-bottom: 10px; line-height: 1.3;
+    }
+    .radar-body {
+      font-size: 13px; color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* Card meta row (publisher + actor chip) */
+    .card-meta {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap; gap: 6px;
+      margin-bottom: 10px;
+      font-size: 12px; color: var(--text-dim);
+    }
+    .pub-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-fade);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+    /* Card footer with reach bar */
+    .card-footer {
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      display: flex; align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .reach-bar {
+      display: flex; align-items: center; gap: 8px;
+      flex: 1;
+    }
+    .reach-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-fade);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .reach-meter {
+      flex: 1; height: 4px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .reach-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--good), var(--cloud));
+      border-radius: 2px;
+    }
+    .reach-score {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      color: var(--good);
+      min-width: 28px; text-align: right;
+    }
+    .cta-arrow {
+      font-size: 12px; font-weight: 600;
+      color: var(--accent-2);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: color 0.12s;
+    }
+    .cta-arrow:hover { color: var(--accent); }
+
+    /* Actor cards */
+    .actor-stats {
+      display: flex; align-items: baseline;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .actor-stats:last-of-type { border-bottom: none; }
+    .actor-stat-label {
+      font-size: 11px; color: var(--text-fade);
+    }
+    .actor-stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; font-weight: 700;
+      color: var(--text);
+    }
+    .actor-stat-value.down { color: var(--good); }
+    .actor-stat-value.up   { color: var(--bad); }
+    .actor-aliases {
+      font-size: 11px; color: var(--text-fade);
+      font-family: 'JetBrains Mono', monospace;
+      margin-bottom: 10px; margin-top: 4px;
+    }
+    .actor-best {
+      padding-top: 10px;
+      font-size: 12px; color: var(--text-dim);
+      line-height: 1.45;
+    }
+    .actor-best a { color: var(--text-dim); text-decoration: none; }
+    .actor-best a:hover { color: var(--accent-2); }
+
+    /* Overview block */
+    .overview-stats {
+      display: flex; gap: 28px;
+      flex-wrap: wrap;
+      padding: 18px 0;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .overview-stat { display: flex; flex-direction: column; }
+    .overview-stat-value {
+      font-size: 28px; font-weight: 800;
+      color: var(--cloud); line-height: 1.1;
+    }
+    .overview-stat-label {
+      font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-fade);
+      margin-top: 4px;
+    }
+
+    /* exec-stat sub-types */
+    .exec-stat-num, .exec-stat-text { padding: 0 22px; }
+    .exec-stat-num:first-child, .exec-stat-text:first-child { padding-left: 0; }
+    .exec-stat-num:last-child,  .exec-stat-text:last-child  { padding-right: 0; }
+    .exec-stat-num + .exec-stat-num, .exec-stat-num + .exec-stat-text,
+    .exec-stat-text + .exec-stat-num, .exec-stat-text + .exec-stat-text {
+      border-left: 1px solid var(--border);
+    }
+    .exec-stat-num .exec-stat-val { font-size: 48px; color: var(--good); }
+    .exec-stat-text .exec-stat-val { font-size: 20px; color: var(--accent-2); }
+
+    /* filter-chip extras */
+    .filter-chip-count {
+      font-size: 10px; opacity: 0.7;
+      margin-left: 4px;
+    }
+    .filter-chip-range {
+      font-size: 9px; opacity: 0.6;
+      margin-left: 4px;
+    }
+
+    /* pulse-title */
+    .pulse-title { font-size: 13px; color: var(--text); }
+    .pulse-title a { color: var(--text); text-decoration: none; }
+    .pulse-title a:hover { color: var(--accent-2); }
+
+    /* CEO-only / CEO-hide visibility helpers */
+    .ceo-only { display: none; }
+    body.view-ceo .ceo-hide { display: none !important; }
+    body.view-ceo .ceo-only { display: inline-block; }
+    .ceo-overflow {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 12px 0 4px;
+      font-size: 12px;
+      color: var(--text-fade);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    @media (max-width: 900px) {
+      .cloud-grid { grid-template-columns: 1fr; }
+      .actor-grid  { grid-template-columns: 1fr; }
+      .vendor-grid { grid-template-columns: 1fr; }
+      .radar-grid  { grid-template-columns: 1fr; }
+      .hero { grid-template-columns: 1fr; }
+      .stat-panel { grid-template-columns: 1fr 1fr; }
+      .wrap { padding: 20px 16px 60px; }
+      .footer { grid-template-columns: 1fr 1fr; }
+    }
+
+    .actor-chip {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 8px;
+      background: rgba(255, 107, 53, 0.15);
+      color: var(--accent-2);
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      border: 1px solid rgba(255, 107, 53, 0.3);
+    }
+
+    /* ---------- containment impact ---------- */
+    .containment-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    .containment-row {
+      display: grid;
+      grid-template-columns: 60px 1fr 1fr;
+      gap: 22px;
+      align-items: stretch;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--good);
+      border-radius: 12px;
+      padding: 20px 24px;
+      transition: border-color 0.15s ease;
+    }
+    .containment-row:hover { border-color: var(--good); }
+    .containment-rank {
+      font-size: 32px; font-weight: 800;
+      color: var(--good);
+      font-family: 'JetBrains Mono', monospace;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .containment-story {
+      border-right: 1px solid var(--border);
+      padding-right: 22px;
+    }
+    .containment-story-pub {
+      font-size: 11px; color: var(--text-fade);
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+    .containment-story-title {
+      font-size: 15px; font-weight: 700;
+      margin-bottom: 8px; line-height: 1.35;
+    }
+    .containment-meta-row {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      align-items: center;
+    }
+    .containment-impact {
+      display: flex; flex-direction: column;
+      justify-content: center;
+    }
+    .containment-impact-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.14em;
+      color: var(--good);
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .containment-impact-label::before {
+      content: "🛡"; font-size: 14px;
+    }
+    .containment-narrative {
+      font-size: 14px; color: var(--text);
+      line-height: 1.5; font-weight: 500;
+    }
+    .containment-matched {
+      margin-top: 10px;
+      display: flex; gap: 4px; flex-wrap: wrap;
+    }
+    .containment-matched .tag {
+      font-size: 10px;
+      background: rgba(62, 224, 143, 0.08);
+      color: var(--good);
+      border: 1px solid rgba(62, 224, 143, 0.25);
+    }
+
+    /* ---------- industry trends ---------- */
+    .trends-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+    .trend-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 24px;
+      transition: border-color 0.15s ease;
+      position: relative;
+    }
+    .trend-card:hover { border-color: var(--ai); }
+    .trend-card::before {
+      content: ""; position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--ai), var(--cloud));
+      border-radius: 12px 12px 0 0;
+    }
+    .trend-head {
+      display: flex; align-items: baseline; gap: 12px;
+      margin-bottom: 10px;
+    }
+    .trend-icon {
+      font-size: 24px; line-height: 1;
+    }
+    .trend-title {
+      font-size: 17px; font-weight: 700; flex: 1;
+    }
+    .trend-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--text-fade);
+    }
+    .trend-count strong {
+      color: var(--ai); font-size: 16px; font-weight: 800;
+    }
+    .trend-wow {
+      display: inline-block;
+      font-size: 11px; font-weight: 700;
+      padding: 2px 7px; border-radius: 3px;
+      margin-left: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .trend-wow.up { background: rgba(255, 94, 94, 0.12); color: var(--bad); }
+    .trend-wow.down { background: rgba(62, 224, 143, 0.12); color: var(--good); }
+    .trend-wow.flat { color: var(--text-fade); }
+    .trend-narrative {
+      font-size: 14px; color: var(--text-dim);
+      line-height: 1.55; margin-bottom: 14px;
+    }
+    .trend-examples {
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .trend-examples-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-fade);
+      margin-bottom: 8px;
+    }
+    .trend-example {
+      font-size: 13px; line-height: 1.45;
+      padding: 4px 0;
+      color: var(--text);
+    }
+    .trend-example a:hover { color: var(--ai); text-decoration: none; }
+    .trend-example-pub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-fade);
+      margin-right: 6px;
+      text-transform: uppercase;
+    }
+
+    /* ---------- section overview ---------- */
+    .overview-block {
+      background:
+        linear-gradient(135deg, rgba(74, 214, 255, 0.12), rgba(255, 107, 53, 0.06)),
+        var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--cloud);
+      border-radius: 12px;
+      padding: 22px 26px;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 2;
+    }
+    .overview-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      padding-bottom: 18px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .overview-stat-value {
+      font-size: 30px; font-weight: 800;
+      color: var(--cloud);
+      line-height: 1.1;
+    }
+    .overview-stat-suffix {
+      font-size: 16px; font-weight: 600;
+      color: var(--text-fade);
+    }
+    .overview-stat-label {
+      font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--text-fade);
+      margin-top: 6px;
+    }
+    .overview-rows {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .overview-row {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+    .overview-label {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-fade);
+    }
+    .overview-pills {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .overview-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      font-size: 12px;
+    }
+    .overview-pill-name {
+      font-weight: 600; color: var(--text);
+    }
+    .overview-pill-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-fade);
+    }
+    .overview-pill.cloud {
+      background: rgba(74, 214, 255, 0.08);
+      border-color: rgba(74, 214, 255, 0.25);
+    }
+    .overview-pill.cloud .overview-pill-name { color: var(--cloud); }
+    .overview-pill.actor {
+      background: rgba(255, 107, 53, 0.08);
+      border-color: rgba(255, 107, 53, 0.25);
+    }
+    .overview-pill.actor .overview-pill-name { color: var(--accent-2); }
+    .overview-pill.source {
+      background: rgba(185, 124, 255, 0.08);
+      border-color: rgba(185, 124, 255, 0.25);
+    }
+    .overview-pill.source .overview-pill-name { color: var(--ai); }
+
+    /* ---------- card popover ---------- */
+    .cloud-grid, .actor-grid { position: relative; }
+    .threat-card { overflow: visible; z-index: 1; }
+    .actor-card  { overflow: visible; position: relative; z-index: 1; }
+    .threat-card:hover, .actor-card:hover { z-index: 100; }
+    .card-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: -8px; right: -8px;
+      background: #0a1428;
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 20px 22px;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.85), 0 0 0 1px rgba(255, 107, 53, 0.15);
+      z-index: 200;
+      display: none;
+      animation: popfade 0.15s ease;
+    }
+    @keyframes popfade {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .threat-card:hover .card-popover,
+    .actor-card:hover .card-popover { display: block; }
+    .pop-section { margin-bottom: 14px; }
+    .pop-section:last-child { margin-bottom: 0; }
+    .pop-section h4 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--accent); font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .pop-section ul {
+      list-style: none; padding: 0; margin: 0;
+    }
+    .pop-section ul li {
+      font-size: 13px; line-height: 1.5;
+      color: var(--text-dim);
+      padding: 4px 0 4px 14px;
+      position: relative;
+    }
+    .pop-section ul li::before {
+      content: "▸"; color: var(--accent);
+      position: absolute; left: 0; top: 4px;
+      font-size: 11px;
+    }
+    .pop-section ul li.dim { color: var(--text-fade); font-style: italic; }
+    .pop-section ul li.dim::before { content: ""; }
+    .ioc-group {
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: 6px; margin-bottom: 6px;
+    }
+    .ioc-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-fade);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-right: 4px;
+    }
+    .ioc-group code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 2px 8px;
+      background: rgba(255, 107, 53, 0.08);
+      border: 1px solid rgba(255, 107, 53, 0.2);
+      color: var(--accent-2);
+      border-radius: 4px;
+      word-break: break-all;
+    }
+    .dim { color: var(--text-fade); font-style: italic; font-size: 12px; }
+    .pop-sources {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .pop-source {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 3px 9px;
+      background: rgba(185, 124, 255, 0.08);
+      border: 1px solid rgba(185, 124, 255, 0.25);
+      color: var(--ai);
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .pop-article {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 12px;
+      align-items: baseline;
+      padding: 8px 12px;
+      background: rgba(185, 124, 255, 0.04);
+      border: 1px solid rgba(185, 124, 255, 0.15);
+      border-radius: 5px;
+      font-size: 12px;
+      text-decoration: none !important;
+      color: var(--text);
+      line-height: 1.45;
+      margin-bottom: 5px;
+      transition: background 0.1s ease, border-color 0.1s ease;
+    }
+    .pop-article:last-child { margin-bottom: 0; }
+    .pop-article:hover {
+      background: rgba(185, 124, 255, 0.14);
+      border-color: var(--ai);
+    }
+    .pop-article-pub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--ai);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pop-article-title {
+      color: var(--text);
+      font-weight: 500;
+    }
+    .pop-article:hover .pop-article-title {
+      color: var(--text);
+      text-decoration: underline;
+    }
+    .pop-more {
+      font-size: 11px;
+      color: var(--text-fade);
+      font-style: italic;
+      padding: 6px 12px 0;
+    }
+
+    /* ---------- MITRE chips ---------- */
+    .card-mitre {
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding-top: 6px;
+    }
+    .mitre-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-fade);
+    }
+    .mitre-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      padding: 2px 7px;
+      background: rgba(255, 94, 94, 0.08);
+      border: 1px solid rgba(255, 94, 94, 0.28);
+      color: var(--bad);
+      border-radius: 3px;
+      text-decoration: none !important;
+    }
+    .mitre-chip:hover {
+      background: rgba(255, 94, 94, 0.18);
+      border-color: var(--bad);
+    }
+    .pop-mitre-list {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .pop-mitre {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 12px;
+      align-items: baseline;
+      padding: 4px 8px;
+      font-size: 12px;
+      text-decoration: none !important;
+      border-radius: 4px;
+    }
+    .pop-mitre code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      color: var(--bad);
+      background: rgba(255, 94, 94, 0.08);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .pop-mitre span { color: var(--text); }
+    .pop-mitre:hover { background: rgba(255, 94, 94, 0.06); }
+
+    /* ---------- containment value banner ---------- */
+    .value-banner {
+      background: linear-gradient(135deg, rgba(62, 224, 143, 0.16), rgba(74, 214, 255, 0.10));
+      border: 1px solid rgba(62, 224, 143, 0.4);
+      border-left: 6px solid var(--good);
+      border-radius: 14px;
+      padding: 26px 32px;
+      margin-bottom: 40px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 28px;
+      align-items: center;
+    }
+    .value-stat-num {
+      font-size: 64px; font-weight: 800;
+      color: var(--good);
+      line-height: 1; letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+    .value-stat-num .pct { font-size: 36px; vertical-align: super; }
+    .value-stat-frac {
+      font-size: 32px;
+      color: rgba(62, 224, 143, 0.55);
+      font-weight: 700;
+    }
+    .value-stat-desc {
+      font-size: 18px; font-weight: 600;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .value-stat-detail {
+      display: block;
+      font-size: 13px; font-weight: 400;
+      color: var(--text-dim);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+    .value-stat-detail em {
+      color: var(--text-fade);
+      font-style: italic;
+      font-size: 12px;
+    }
+
+    /* ---------- view-scoped visibility ---------- */
+    /* `.ceo-hide` collapses non-essential detail in CEO Brief.
+       `.ceo-only` reveals CEO-specific affordances (overflow hints, compact counts). */
+    .ceo-only { display: none; }
+    body.view-ceo .ceo-hide { display: none !important; }
+    body.view-ceo .ceo-only { display: inline-block; }
+    body.view-ceo .ceo-overflow { display: block; }
+    .ceo-overflow {
+      grid-column: 1 / -1;
+      margin: 12px 0 0;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.03);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      color: var(--text-dim);
+      font-size: 13px;
+      text-align: center;
+    }
+    .ceo-overflow strong { color: var(--text); }
+
+    /* ---------- view selector ---------- */
+    .view-bar {
+      display: flex; align-items: center; gap: 12px;
+      margin: 0 0 24px 0;
+      padding: 12px 18px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .view-label {
+      font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--text-fade);
+      font-weight: 700;
+      margin-right: 6px;
+    }
+    .view-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.03);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .view-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .view-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* ---------- industry pulse narrative ---------- */
+    .pulse-narrative {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--ai);
+      border-radius: 12px;
+      padding: 24px 28px;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-dim);
+    }
+    .pulse-narrative strong { color: var(--text); font-weight: 600; }
+    .pulse-narrative em {
+      color: var(--ai);
+      font-style: normal;
+      font-weight: 500;
+    }
+    .pulse-narrative em a:hover { text-decoration: underline; }
+
+    /* ---------- Executive Overview ---------- */
+    .exec-overview {
+      background:
+        linear-gradient(180deg, rgba(255, 107, 53, 0.10) 0%, rgba(10, 20, 40, 0) 50%),
+        var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 34px 40px 32px;
+      margin-bottom: 48px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .exec-overview::before {
+      content: ""; position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--cloud), var(--ai), var(--accent));
+    }
+    .exec-eyebrow {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 22px;
+      flex-wrap: wrap; gap: 10px;
+    }
+    .exec-eyebrow-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.18em;
+      color: var(--accent);
+    }
+    .exec-eyebrow-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--text-fade);
+    }
+    .exec-thesis {
+      font-size: 24px; line-height: 1.45;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 28px;
+      letter-spacing: -0.01em;
+    }
+    .exec-thesis strong {
+      color: var(--accent-2);
+      font-weight: 700;
+    }
+    .exec-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      margin-bottom: 28px;
+      padding: 22px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .exec-stat { padding: 0 22px; }
+    .exec-stat:first-child { padding-left: 0; }
+    .exec-stat:last-child { padding-right: 0; }
+    .exec-stat + .exec-stat { border-left: 1px solid var(--border); }
+    .exec-stat-val {
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .exec-stat-num .exec-stat-val {
+      font-size: 56px;
+      color: var(--good);
+    }
+    .exec-stat-text .exec-stat-val {
+      font-size: 22px;
+      color: var(--accent-2);
+    }
+    .exec-stat-lbl {
+      font-size: 12px; color: var(--text-dim);
+      line-height: 1.4;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* lead story block */
+    .exec-lead {
+      background: rgba(10, 20, 40, 0.65);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 26px;
+    }
+    .exec-lead-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.16em;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .exec-lead-title {
+      display: block;
+      font-size: 22px; font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+      margin-bottom: 12px;
+      text-decoration: none !important;
+    }
+    .exec-lead-title:hover { color: var(--accent-2); }
+    .exec-lead-meta {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+      font-size: 12px; color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .exec-lead-meta strong { color: var(--text); font-weight: 700; }
+    .exec-lead-actor {
+      background: rgba(255, 107, 53, 0.15);
+      color: var(--accent-2);
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      border: 1px solid rgba(255, 107, 53, 0.3);
+    }
+    .exec-lead-ttps { display: inline-flex; gap: 4px; }
+    .exec-lead-ttp {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      padding: 2px 6px;
+      background: rgba(255, 94, 94, 0.10);
+      color: var(--bad);
+      border: 1px solid rgba(255, 94, 94, 0.28);
+      border-radius: 3px;
+      text-decoration: none !important;
+    }
+    .exec-lead-ttp:hover { background: rgba(255, 94, 94, 0.2); }
+
+    /* imperatives */
+    .exec-imperatives { padding-top: 4px; }
+    .exec-imp-head {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.16em;
+      color: var(--text-fade);
+      margin-bottom: 14px;
+    }
+    .exec-imp-list {
+      list-style: none;
+      counter-reset: imp;
+      padding: 0; margin: 0;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .exec-imp-list li {
+      counter-increment: imp;
+      display: grid;
+      grid-template-columns: 32px 160px 1fr;
+      gap: 14px;
+      align-items: baseline;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .exec-imp-list li::before {
+      content: counter(imp);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px; font-weight: 800;
+      color: var(--accent);
+    }
+    .exec-imp-label {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--accent-2);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .exec-imp-body { color: var(--text); }
+    .exec-imp-body strong { color: var(--text); font-weight: 700; }
+    .exec-imp-body code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--bad);
+      background: rgba(255, 94, 94, 0.08);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    @media (max-width: 900px) {
+      .exec-stats { grid-template-columns: 1fr; gap: 14px; }
+      .exec-stat + .exec-stat { border-left: none; border-top: 1px solid var(--border); padding-top: 14px; padding-left: 0; }
+      .exec-imp-list li { grid-template-columns: 1fr; gap: 4px; }
+    }
+
+    /* ---------- reach chips ---------- */
+    .filter-label-hint {
+      font-weight: 500; text-transform: none;
+      letter-spacing: 0; color: var(--text-fade);
+      margin-left: 4px;
+    }
+    .reach-chip.active {
+      background: var(--good); color: #021624; border-color: var(--good);
+    }
+    .filter-chip-range {
+      font-size: 9px; opacity: 0.6;
+      margin-left: 4px;
+    }
+
+    @media (max-width: 1024px) {
+      .containment-row { grid-template-columns: 40px 1fr; }
+      .containment-story { border-right: none; padding-right: 0; }
+      .containment-impact { padding-top: 14px; border-top: 1px solid var(--border); grid-column: 2; }
+      .trends-grid { grid-template-columns: 1fr; }
+      .card-popover { position: static; margin-top: 12px; }
+    }
+
+    @media (max-width: 600px) {
+      html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+      .topbar { padding: 0 12px; }
+      .topbar-inner { height: 48px; min-width: 0; gap: 8px; }
+      .brand-product, .brand-sep, .nav-links { display: none; }
+      .nav-status { margin-left: auto; }
+      .wrap { width: 100%; min-width: 0; padding: 16px 12px 48px; }
+      .wrap > *, .section, .hero > *, .cloud-grid > *, .actor-grid > * { min-width: 0; }
+      .section { margin-bottom: 40px; }
+      .hero { gap: 22px; padding: 24px 0; margin-bottom: 32px; }
+      .hero-title { font-size: 30px; }
+      .hero-meta .dot { display: none; }
+      .stat-panel { min-width: 0; gap: 8px; }
+      .stat { padding: 13px; }
+      .stat-value { font-size: 26px; }
+      .view-bar { flex-wrap: wrap; gap: 8px; padding: 10px; }
+      .view-label { flex-basis: 100%; }
+      .view-btn { flex: 1 1 42%; padding: 7px 8px; }
+      .exec-overview, .overview-block, .value-banner,
+      .threat-card, .actor-card, .vendor-panel, .trend-card { padding: 18px 16px; }
+      .exec-thesis { font-size: 19px; }
+      .exec-stat { padding: 0; }
+      .overview-stats, .overview-row, .value-banner { grid-template-columns: 1fr; }
+      .overview-row { gap: 6px; }
+      .value-banner { gap: 12px; }
+      .value-stat-num { font-size: 48px; }
+      .cloud-grid, .actor-grid, .vendor-grid, .radar-grid { grid-template-columns: minmax(0, 1fr); }
+      .containment-row { grid-template-columns: 1fr; gap: 12px; padding: 18px 16px; }
+      .containment-rank { justify-content: flex-start; font-size: 24px; }
+      .containment-impact { grid-column: auto; }
+      .card-footer { align-items: flex-start; flex-wrap: wrap; }
+      .reach-bar { flex-basis: 100%; min-width: 0; }
+      .pulse-row { grid-template-columns: 1fr; }
+      .archive-table { display: block; max-width: 100%; overflow-x: auto; }
+      .pop-article, .pop-mitre { grid-template-columns: 1fr; gap: 4px; }
+      .footer { width: 100%; grid-template-columns: 1fr; padding: 30px 16px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <span class="brand-name">THREAT INTEL</span>
+      <span class="brand-sep">/</span>
+      <span class="brand-product">Threat Watch</span>
+    </div>
+    <nav class="nav-links">
+      <a href="#cloud">Cloud</a>
+      <a href="#containment">Containment</a>
+      <a href="#actors">Actors</a>
+      <a href="#pulse">Industry</a>
+      <a href="#trends">Trends</a>
+      <a href="#vendors">Vendors</a>
+    </nav>
+    <div class="nav-status">
+      <span class="status-dot"></span>
+      <span>LIVE · refreshed 2026-09-02 21:52 UTC</span>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <!-- VIEW SELECTOR -->
+  <section class="view-bar" data-views="full ceo ciso analyst">
+    <span class="view-label">Preset views</span>
+    <button class="view-btn active" data-view="full">Full</button>
+    <button class="view-btn" data-view="ceo">CEO Brief</button>
+    <button class="view-btn" data-view="ciso">CISO Brief</button>
+    <button class="view-btn" data-view="analyst">Analyst Brief</button>
+  </section>
+
+  <!-- EXECUTIVE OVERVIEW (replaces old TL;DR) -->
+  <section class="exec-overview" data-views="full ceo ciso analyst">
+    <div class="exec-eyebrow">
+      <span class="exec-eyebrow-tag">Executive Overview</span>
+      <span class="exec-eyebrow-meta">Past 30 days · refreshed 2026-09-02 21:52 UTC</span>
+    </div>
+    <p class="exec-thesis">Cloud-threat reporting this month centers on <strong>identity-driven cloud takeover</strong> and <strong>state-aligned cloud espionage</strong>. <strong>APT29</strong> remain the most active cloud-targeting cluster.</p>
+    <div class="exec-stats"><div class="exec-stat exec-stat-num">
+        <div class="exec-stat-val">10</div>
+        <div class="exec-stat-lbl">cloud-relevant reports tracked / 30d</div>
+      </div><div class="exec-stat exec-stat-text">
+        <div class="exec-stat-val">APT29</div>
+        <div class="exec-stat-lbl">most-active cloud-targeting cluster</div>
+      </div><div class="exec-stat exec-stat-text">
+        <div class="exec-stat-val">Identity-driven cloud takeover</div>
+        <div class="exec-stat-lbl">#1 cloud attack vector · 3 cloud reports / 30d</div>
+      </div></div>
+
+    <div class="exec-lead">
+      <div class="exec-lead-label">This week's lead</div>
+      <a class="exec-lead-title" href="https://example.com/threat-intel/sample--apt29-device-code-2" target="_blank">Cloud identity campaign uses device authorization grants</a>
+      <div class="exec-lead-meta">
+        2 sources · Industry Reach <strong>46</strong>
+        <span class="exec-lead-actor">⚡ APT29</span>
+        <span class="exec-lead-ttps"><a class="exec-lead-ttp" href="https://attack.mitre.org/techniques/T1528/" target="_blank" title="Steal Application Access Token">T1528</a> <a class="exec-lead-ttp" href="https://attack.mitre.org/techniques/T1078/" target="_blank" title="Valid Accounts">T1078</a> <a class="exec-lead-ttp" href="https://attack.mitre.org/techniques/T1566/" target="_blank" title="Phishing">T1566</a></span>
+      </div>
+    </div>
+    <div class="exec-imperatives">
+      <div class="exec-imp-head">On your radar</div>
+      <ol class="exec-imp-list"><li>
+        <span class="exec-imp-label">Adversary watch</span>
+        <span class="exec-imp-body"><strong>APT29</strong> — 2 reports / 30d, 2 in the last 7 days. Primary surface: <strong>AZURE / SAAS</strong>. Lead campaign: <em>"Cloud identity campaign uses device authorization grants"</em>.</span>
+      </li><li>
+        <span class="exec-imp-label">Vector watch</span>
+        <span class="exec-imp-body"><strong>Identity-driven cloud takeover</strong> — 3 reports / 30d across 3 publishers. Representative: <em>"Scattered Spider impersonates Okta help desk for credential abuse"</em>.</span>
+      </li><li>
+        <span class="exec-imp-label">Emerging signal</span>
+        <span class="exec-imp-body"><strong>State-aligned cloud espionage</strong> — 3 reports / 30d. Watch: <em>"Cloud identity campaign uses device authorization grants"</em>.</span>
+      </li></ol>
+    </div>
+  </section>
+
+  <!-- HERO -->
+  <section class="hero" data-views="full ceo ciso analyst">
+    <div>
+      <div class="hero-headline">Threat Watch · Past 30 days</div>
+      <h1 class="hero-title">
+        10 reports tracked.<br>
+        <span class="accent">5 named actors</span> in motion.
+      </h1>
+      <p class="hero-sub">
+        Cloud- and AI-relevant threat intelligence aggregated from 9 publishers
+        over the last 30 days, enriched with threat-actor, malware, and campaign
+        SDOs from OpenCTI.
+      </p>
+      <div class="hero-meta">
+        <span>4 cloud sub-tags</span><span class="dot"></span>
+        <span>2 AI sub-tags</span><span class="dot"></span>
+        <span>8 actor mentions</span><span class="dot"></span>
+        <span>7 active clusters</span><span class="dot"></span>
+        <span>10 awaiting review</span><span class="dot"></span>
+        <span>publish ≤ TLP AMBER</span>
+
+      </div>
+    </div>
+
+    <div class="stat-panel">
+      <div class="stat">
+        <div class="stat-label">Reports / 30d</div>
+        <div class="stat-value">10</div>
+      </div>
+      <div class="stat ai">
+        <div class="stat-label">AI-relevant</div>
+        <div class="stat-value">2</div>
+      </div>
+      <div class="stat cloud">
+        <div class="stat-label">Cloud-relevant</div>
+        <div class="stat-value">10</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Publishers</div>
+        <div class="stat-value">9</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTAINMENT VALUE BANNER -->
+  <section class="value-banner" data-views="full ceo ciso analyst">
+    <div class="value-stat-num">3<span class="value-stat-frac">/7</span></div>
+    <div class="value-stat-desc">
+      top cloud-threat clusters this month involve attack techniques network-level controls directly address.
+      <span class="value-stat-detail">
+        4 of 10 cloud-relevant reports score against lateral-movement, supply-chain, identity-reuse, or C2 patterns — the surfaces microsegmentation, egress filtering, and identity-aware policy actively target. <em>Heuristic scoring, not retroactive attribution.</em>
+      </span>
+    </div>
+  </section>
+
+  <!-- FILTER BAR -->
+  <section class="filter-bar" data-views="full ciso analyst">
+    <div class="filter-head">
+      <span>Filter by topic</span>
+      <span class="reset" data-reset>reset</span>
+    </div>
+    <input class="report-search" type="search" data-report-search aria-label="Search reports" placeholder="Search reports, actors, publishers, or IOCs">
+    <div class="filter-row">
+      <button class="filter-chip  active" data-tag="all">all<span class="filter-chip-count">7</span></button>
+      <div class="filter-divider"></div>
+      <span class="filter-label">☁ Cloud</span>
+      <button class="filter-chip cloud" data-tag="cloud">cloud<span class="filter-chip-count">5</span></button><button class="filter-chip cloud" data-tag="cloud-aws">aws<span class="filter-chip-count">2</span></button><button class="filter-chip cloud" data-tag="cloud-azure">azure<span class="filter-chip-count">1</span></button><button class="filter-chip cloud" data-tag="cloud-gcp">gcp<span class="filter-chip-count">0</span></button><button class="filter-chip cloud" data-tag="cloud-k8s">k8s<span class="filter-chip-count">0</span></button><button class="filter-chip cloud" data-tag="cloud-container">container<span class="filter-chip-count">0</span></button><button class="filter-chip cloud" data-tag="cloud-saas">saas<span class="filter-chip-count">4</span></button>
+      <div class="filter-divider"></div>
+      <span class="filter-label">🤖 AI</span>
+      <button class="filter-chip ai" data-tag="ai">ai<span class="filter-chip-count">2</span></button><button class="filter-chip ai" data-tag="ai-llm">llm<span class="filter-chip-count">0</span></button><button class="filter-chip ai" data-tag="ai-agentic">agentic<span class="filter-chip-count">2</span></button><button class="filter-chip ai" data-tag="ai-mcp">mcp<span class="filter-chip-count">0</span></button><button class="filter-chip ai" data-tag="ai-deepfake">deepfake<span class="filter-chip-count">0</span></button><button class="filter-chip ai" data-tag="ai-prompt-injection">prompt-inj<span class="filter-chip-count">2</span></button><button class="filter-chip ai" data-tag="ai-data-poisoning">data-poison<span class="filter-chip-count">0</span></button>
+    </div>
+    <div class="filter-row" style="margin-top:10px">
+      <span class="filter-label">📊 Industry Reach <span class="filter-label-hint">(cloud cards only)</span></span>
+      <button class="filter-chip reach-chip active" data-reach="any">any reach <span class="filter-chip-range">any</span><span class="filter-chip-count">7</span></button><button class="filter-chip reach-chip" data-reach="80+">critical <span class="filter-chip-range">80+</span><span class="filter-chip-count">0</span></button><button class="filter-chip reach-chip" data-reach="60">high <span class="filter-chip-range">60-79</span><span class="filter-chip-count">0</span></button><button class="filter-chip reach-chip" data-reach="40">medium <span class="filter-chip-range">40-59</span><span class="filter-chip-count">2</span></button><button class="filter-chip reach-chip" data-reach="0">low <span class="filter-chip-range"><40</span><span class="filter-chip-count">5</span></button>
+    </div>
+  </section>
+
+  <!-- CLOUD THREAT WATCH -->
+  <section class="section" id="cloud" data-views="full ceo ciso analyst">
+    <div class="section-head">
+      <span class="kicker">Lead</span>
+      <h2>Cloud Threat Watch</h2>
+      <span class="count ceo-hide">7 clusters · ranked by Industry Reach</span>
+      <span class="count ceo-only">Top 3 of 7 · ranked by Industry Reach</span>
+    </div>
+    <p class="section-sub">
+      Cloud-shaped incidents from the last 30 days, clustered by shared threat
+      actor and weighted by publisher reach, sector breadth, and architecture diversity.
+    </p>
+
+    <div class="overview-block">
+      <div class="overview-stats">
+        <div class="overview-stat">
+          <div class="overview-stat-value">7</div>
+          <div class="overview-stat-label">active clusters</div>
+        </div>
+        <div class="overview-stat">
+          <div class="overview-stat-value">10</div>
+          <div class="overview-stat-label">reports aggregated</div>
+        </div>
+        <div class="overview-stat">
+          <div class="overview-stat-value">0<span class="overview-stat-suffix">/7</span></div>
+          <div class="overview-stat-label">high-reach (≥60)</div>
+        </div>
+      </div>
+      <div class="overview-rows">
+        <div class="overview-row">
+          <span class="overview-label">Dominant patterns</span>
+          <div class="overview-pills"><span class="overview-pill"><span class="overview-pill-name">Identity / SaaS takeover</span><span class="overview-pill-count">2</span></span></div>
+        </div>
+        <div class="overview-row">
+          <span class="overview-label">Top cloud surfaces</span>
+          <div class="overview-pills"><span class="overview-pill cloud"><span class="overview-pill-name">SAAS</span><span class="overview-pill-count">4</span></span><span class="overview-pill cloud"><span class="overview-pill-name">AWS</span><span class="overview-pill-count">2</span></span><span class="overview-pill cloud"><span class="overview-pill-name">AZURE</span><span class="overview-pill-count">1</span></span><span class="overview-pill cloud"><span class="overview-pill-name">CICD</span><span class="overview-pill-count">1</span></span></div>
+        </div>
+        <div class="overview-row">
+          <span class="overview-label">Most-active adversaries</span>
+          <div class="overview-pills"><span class="overview-pill actor"><span class="overview-pill-name">APT29</span><span class="overview-pill-count">1</span></span><span class="overview-pill actor"><span class="overview-pill-name">TeamPCP</span><span class="overview-pill-count">1</span></span><span class="overview-pill actor"><span class="overview-pill-name">ShinyHunters / Scattered Spider</span><span class="overview-pill-count">1</span></span></div>
+        </div>
+        <div class="overview-row">
+          <span class="overview-label">Reporting sources</span>
+          <div class="overview-pills"><span class="overview-pill source"><span class="overview-pill-name">CISA</span><span class="overview-pill-count">2</span></span><span class="overview-pill source"><span class="overview-pill-name">Microsoft Security Blog</span><span class="overview-pill-count">1</span></span><span class="overview-pill source"><span class="overview-pill-name">GitHub Security Advisories</span><span class="overview-pill-count">1</span></span><span class="overview-pill source"><span class="overview-pill-name">The DFIR Report</span><span class="overview-pill-count">1</span></span><span class="overview-pill source"><span class="overview-pill-name">CrowdStrike</span><span class="overview-pill-count">1</span></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="cloud-grid">
+      <article class="threat-card" data-tags="cloud cloud-azure cloud-saas" data-reach="46">
+        <div class="card-meta">
+          <span class="pub-badge">2 sources · 2 reports</span>
+          <span>CISA · Microsoft Security Blog <span class="actor-chip">⚡ APT29</span></span>
+        </div>
+        <h3 class="card-title"><a href="https://example.com/threat-intel/sample--apt29-device-code-2" target="_blank">Cloud identity campaign uses device authorization grants</a></h3>
+        <div class="card-tags"><span class="tag cloud">cloud</span><span class="tag cloud">cloud-azure</span><span class="tag cloud">cloud-saas</span></div>
+        <div class="card-mitre"><span class="mitre-label">MITRE</span><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1528/" target="_blank" title="Steal Application Access Token">T1528</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1078/" target="_blank" title="Valid Accounts">T1078</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1566/" target="_blank" title="Phishing">T1566</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1078/004/" target="_blank" title="Cloud Accounts">T1078.004</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1098/" target="_blank" title="Account Manipulation">T1098</a></div>
+        <div class="card-footer">
+          <div class="reach-bar">
+            <span class="reach-label">Industry Reach</span>
+            <div class="reach-meter"><div class="reach-fill" style="width:46%"></div></div>
+            <span class="reach-score">46</span>
+          </div>
+          <a class="cta-arrow" href="https://example.com/threat-intel/sample--apt29-device-code-2" target="_blank">Read →</a>
+        </div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic corroborating advisory: suspicious device authorization grants preceded mailbox access from login.example.test.</li></ul></div>
+        <div class="pop-section"><h4>🎯 MITRE ATT&CK</h4><div class="pop-mitre-list"><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1528/" target="_blank"><code>T1528</code><span>Steal Application Access Token</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1078/" target="_blank"><code>T1078</code><span>Valid Accounts</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1566/" target="_blank"><code>T1566</code><span>Phishing</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1078/004/" target="_blank"><code>T1078.004</code><span>Cloud Accounts</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1098/" target="_blank"><code>T1098</code><span>Account Manipulation</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1505/" target="_blank"><code>T1505</code><span>Server Software Component</span></a></div></div>
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='dim'>No IOCs extracted from description text.</div></div>
+        <div class="pop-section"><h4>📰 Sources (2)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--apt29-device-code-2" target="_blank"><span class="pop-article-pub">CISA</span><span class="pop-article-title">Cloud identity campaign uses device authorization grants</span></a><a class="pop-article" href="https://example.com/threat-intel/sample--apt29-device-code-1" target="_blank"><span class="pop-article-pub">Microsoft Security Blog</span><span class="pop-article-title">APT29 expands OAuth device-code phishing against cloud tenants</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Adversary attribution: APT29. Pivot via OpenCTI ThreatActor SDO for known IOCs.</li><li>Cloud surface impacted: AZURE, SAAS. Confirm customer estate exposure first.</li><li>Customer ask: &quot;Do you run anything in AZURE, SAAS?&quot; If yes, validate posture against this TTP.</li></ul></div>
+      </div>
+      </article>
+
+      <article class="threat-card" data-tags="cloud cloud-aws cloud-cicd" data-reach="46">
+        <div class="card-meta">
+          <span class="pub-badge">2 sources · 2 reports</span>
+          <span>GitHub Security Advisories · The DFIR Report <span class="actor-chip">⚡ TeamPCP</span></span>
+        </div>
+        <h3 class="card-title"><a href="https://example.com/threat-intel/sample--teampcp-actions-1" target="_blank">TeamPCP supply-chain dependency enables credential theft from CI runners</a></h3>
+        <div class="card-tags"><span class="tag cloud">cloud</span><span class="tag cloud">cloud-aws</span><span class="tag cloud">cloud-cicd</span></div>
+        <div class="card-mitre"><span class="mitre-label">MITRE</span><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1195/" target="_blank" title="Supply Chain Compromise">T1195</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1554/" target="_blank" title="Compromise Client Software Binary">T1554</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1552/" target="_blank" title="Unsecured Credentials">T1552</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1078/" target="_blank" title="Valid Accounts">T1078</a></div>
+        <div class="card-footer">
+          <div class="reach-bar">
+            <span class="reach-label">Industry Reach</span>
+            <div class="reach-meter"><div class="reach-fill" style="width:46%"></div></div>
+            <span class="reach-score">46</span>
+          </div>
+          <a class="cta-arrow" href="https://example.com/threat-intel/sample--teampcp-actions-1" target="_blank">Read →</a>
+        </div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic exercise report: a modified GitHub Actions dependency exposed cloud credentials and contacted hxxps://runner-check[.]example[.]test/a.</li></ul></div>
+        <div class="pop-section"><h4>🎯 MITRE ATT&CK</h4><div class="pop-mitre-list"><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1195/" target="_blank"><code>T1195</code><span>Supply Chain Compromise</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1554/" target="_blank"><code>T1554</code><span>Compromise Client Software Binary</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1552/" target="_blank"><code>T1552</code><span>Unsecured Credentials</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1078/" target="_blank"><code>T1078</code><span>Valid Accounts</span></a></div></div>
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='dim'>No IOCs extracted from description text.</div></div>
+        <div class="pop-section"><h4>📰 Sources (2)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--teampcp-actions-2" target="_blank"><span class="pop-article-pub">GitHub Security Advisories</span><span class="pop-article-title">Malicious GitHub dependency enables AWS credential theft</span></a><a class="pop-article" href="https://example.com/threat-intel/sample--teampcp-actions-1" target="_blank"><span class="pop-article-pub">The DFIR Report</span><span class="pop-article-title">TeamPCP supply-chain dependency enables credential theft from CI runners</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Adversary attribution: TeamPCP. Pivot via OpenCTI ThreatActor SDO for known IOCs.</li><li>Cloud surface impacted: CICD. Confirm customer estate exposure first.</li><li>Containment angle: Egress policy on CI/CD pipelines would have blocked TeamPCP&#x27;s outbound callback before any credential left the runner.</li><li>Customer ask: &quot;Do you run anything in CICD?&quot; If yes, validate posture against this TTP.</li></ul></div>
+      </div>
+      </article>
+
+      <article class="threat-card" data-tags="cloud cloud-saas" data-reach="39">
+        <div class="card-meta">
+          <span class="pub-badge">2 sources · 2 reports</span>
+          <span>CrowdStrike · Mandiant <span class="actor-chip">⚡ ShinyHunters / Scattered Spider</span></span>
+        </div>
+        <h3 class="card-title"><a href="https://example.com/threat-intel/sample--scattered-spider-okta-1" target="_blank">Scattered Spider impersonates Okta help desk for credential abuse</a></h3>
+        <div class="card-tags"><span class="tag cloud">cloud</span><span class="tag cloud">cloud-saas</span></div>
+        <div class="card-mitre"><span class="mitre-label">MITRE</span><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1566/" target="_blank" title="Phishing">T1566</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1552/" target="_blank" title="Unsecured Credentials">T1552</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1078/" target="_blank" title="Valid Accounts">T1078</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1528/" target="_blank" title="Steal Application Access Token">T1528</a></div>
+        <div class="card-footer">
+          <div class="reach-bar">
+            <span class="reach-label">Industry Reach</span>
+            <div class="reach-meter"><div class="reach-fill" style="width:39%"></div></div>
+            <span class="reach-score">39</span>
+          </div>
+          <a class="cta-arrow" href="https://example.com/threat-intel/sample--scattered-spider-okta-1" target="_blank">Read →</a>
+        </div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic exercise report: operators impersonated employees, reset MFA, and created new sessions from reserved address 203.0.113.44.</li></ul></div>
+        <div class="pop-section"><h4>🎯 MITRE ATT&CK</h4><div class="pop-mitre-list"><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1566/" target="_blank"><code>T1566</code><span>Phishing</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1552/" target="_blank"><code>T1552</code><span>Unsecured Credentials</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1078/" target="_blank"><code>T1078</code><span>Valid Accounts</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1528/" target="_blank"><code>T1528</code><span>Steal Application Access Token</span></a></div></div>
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='ioc-group'><span class='ioc-label'>IPs</span><code>203.0.113.44</code></div></div>
+        <div class="pop-section"><h4>📰 Sources (2)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--scattered-spider-okta-1" target="_blank"><span class="pop-article-pub">CrowdStrike</span><span class="pop-article-title">Scattered Spider impersonates Okta help desk for credential abuse</span></a><a class="pop-article" href="https://example.com/threat-intel/sample--scattered-spider-okta-2" target="_blank"><span class="pop-article-pub">Mandiant</span><span class="pop-article-title">Okta identity takeover follows credential abuse in reset workflows</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Adversary attribution: ShinyHunters / Scattered Spider. Pivot via OpenCTI ThreatActor SDO for known IOCs.</li><li>Cloud surface impacted: SAAS. Confirm customer estate exposure first.</li><li>Containment angle: OAuth-aware network policy would have flagged ShinyHunters / Scattered Spider&#x27;s cross-tenant token replay.</li><li>Customer ask: &quot;Do you run anything in SAAS?&quot; If yes, validate posture against this TTP.</li></ul></div>
+      </div>
+      </article>
+
+      <article class="threat-card ceo-hide" data-tags="cloud-saas ai ai-agentic ai-prompt-injection" data-reach="29">
+        <div class="card-meta">
+          <span class="pub-badge">Google Security Blog</span>
+          <span>Google Security Blog</span>
+        </div>
+        <h3 class="card-title"><a href="https://example.com/threat-intel/sample--ai-agent-prompt-injection-1" target="_blank">Indirect prompt injection drives unauthorized AI agent tool calls</a></h3>
+        <div class="card-tags"><span class="tag cloud">cloud-saas</span><span class="tag ai">ai</span><span class="tag ai">ai-agentic</span><span class="tag ai">ai-prompt-injection</span></div>
+        <div class="card-mitre"><span class="mitre-label">MITRE</span><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1059/" target="_blank" title="Command and Scripting Interpreter">T1059</a></div>
+        <div class="card-footer">
+          <div class="reach-bar">
+            <span class="reach-label">Industry Reach</span>
+            <div class="reach-meter"><div class="reach-fill" style="width:29%"></div></div>
+            <span class="reach-score">29</span>
+          </div>
+          <a class="cta-arrow" href="https://example.com/threat-intel/sample--ai-agent-prompt-injection-1" target="_blank">Read →</a>
+        </div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic exercise report: untrusted document content caused an AI agent to request a public upload after reading an internal file.</li></ul></div>
+        <div class="pop-section"><h4>🎯 MITRE ATT&CK</h4><div class="pop-mitre-list"><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1059/" target="_blank"><code>T1059</code><span>Command and Scripting Interpreter</span></a></div></div>
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='dim'>No IOCs extracted from description text.</div></div>
+        <div class="pop-section"><h4>📰 Sources (1)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--ai-agent-prompt-injection-1" target="_blank"><span class="pop-article-pub">Google Security Blog</span><span class="pop-article-title">Indirect prompt injection drives unauthorized AI agent tool calls</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Cloud surface impacted: SAAS. Confirm customer estate exposure first.</li><li>AI surface: agentic, prompt-injection. Frame as positioning moment for AI security messaging.</li><li>Customer ask: &quot;Do you run anything in SAAS?&quot; If yes, validate posture against this TTP.</li></ul></div>
+      </div>
+      </article>
+
+      <article class="threat-card ceo-hide" data-tags="cloud-saas ai ai-agentic ai-prompt-injection" data-reach="29">
+        <div class="card-meta">
+          <span class="pub-badge">Wired</span>
+          <span>Wired</span>
+        </div>
+        <h3 class="card-title"><a href="https://example.com/threat-intel/sample--ai-agent-prompt-injection-2" target="_blank">Security evaluation finds tool-abuse path in enterprise AI assistant</a></h3>
+        <div class="card-tags"><span class="tag cloud">cloud-saas</span><span class="tag ai">ai</span><span class="tag ai">ai-agentic</span><span class="tag ai">ai-prompt-injection</span></div>
+
+        <div class="card-footer">
+          <div class="reach-bar">
+            <span class="reach-label">Industry Reach</span>
+            <div class="reach-meter"><div class="reach-fill" style="width:29%"></div></div>
+            <span class="reach-score">29</span>
+          </div>
+          <a class="cta-arrow" href="https://example.com/threat-intel/sample--ai-agent-prompt-injection-2" target="_blank">Read →</a>
+        </div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic corroborating report: a retrieved document attempted to override policy and invoke external sharing tools.</li></ul></div>
+
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='dim'>No IOCs extracted from description text.</div></div>
+        <div class="pop-section"><h4>📰 Sources (1)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--ai-agent-prompt-injection-2" target="_blank"><span class="pop-article-pub">Wired</span><span class="pop-article-title">Security evaluation finds tool-abuse path in enterprise AI assistant</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Cloud surface impacted: SAAS. Confirm customer estate exposure first.</li><li>AI surface: agentic, prompt-injection. Frame as positioning moment for AI security messaging.</li><li>Customer ask: &quot;Do you run anything in SAAS?&quot; If yes, validate posture against this TTP.</li></ul></div>
+      </div>
+      </article>
+
+      <article class="threat-card ceo-hide" data-tags="cloud cloud-aws" data-reach="27">
+        <div class="card-meta">
+          <span class="pub-badge">Palo Alto Unit 42</span>
+          <span>Palo Alto Unit 42 <span class="actor-chip">⚡ RansomHub</span></span>
+        </div>
+        <h3 class="card-title"><a href="https://example.com/threat-intel/sample--ransomware-cloud-backup-1" target="_blank">RansomHub uses credential abuse before cloud backup encryption</a></h3>
+        <div class="card-tags"><span class="tag cloud">cloud</span><span class="tag cloud">cloud-aws</span></div>
+        <div class="card-mitre"><span class="mitre-label">MITRE</span><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1486/" target="_blank" title="Data Encrypted for Impact">T1486</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1567/" target="_blank" title="Exfiltration Over Web Service">T1567</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1552/" target="_blank" title="Unsecured Credentials">T1552</a><a class="mitre-chip" href="https://attack.mitre.org/techniques/T1078/" target="_blank" title="Valid Accounts">T1078</a></div>
+        <div class="card-footer">
+          <div class="reach-bar">
+            <span class="reach-label">Industry Reach</span>
+            <div class="reach-meter"><div class="reach-fill" style="width:27%"></div></div>
+            <span class="reach-score">27</span>
+          </div>
+          <a class="cta-arrow" href="https://example.com/threat-intel/sample--ransomware-cloud-backup-1" target="_blank">Read →</a>
+        </div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic exercise report: valid cloud credentials were used to enumerate and delete backup snapshots before endpoint encryption.</li></ul></div>
+        <div class="pop-section"><h4>🎯 MITRE ATT&CK</h4><div class="pop-mitre-list"><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1486/" target="_blank"><code>T1486</code><span>Data Encrypted for Impact</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1567/" target="_blank"><code>T1567</code><span>Exfiltration Over Web Service</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1552/" target="_blank"><code>T1552</code><span>Unsecured Credentials</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1078/" target="_blank"><code>T1078</code><span>Valid Accounts</span></a></div></div>
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='dim'>No IOCs extracted from description text.</div></div>
+        <div class="pop-section"><h4>📰 Sources (1)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--ransomware-cloud-backup-1" target="_blank"><span class="pop-article-pub">Palo Alto Unit 42</span><span class="pop-article-title">RansomHub uses credential abuse before cloud backup encryption</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Adversary attribution: RansomHub. Pivot via OpenCTI ThreatActor SDO for known IOCs.</li><li>Cloud surface impacted: AWS. Confirm customer estate exposure first.</li><li>Containment angle: Identity-aware network gates would have caught RansomHub&#x27;s credential reuse across cloud accounts.</li><li>Customer ask: &quot;Do you run anything in AWS?&quot; If yes, validate posture against this TTP.</li></ul></div>
+      </div>
+      </article>
+
+      <article class="threat-card ceo-hide" data-tags="cloud" data-reach="20">
+        <div class="card-meta">
+          <span class="pub-badge">CISA</span>
+          <span>CISA <span class="actor-chip">⚡ CyberAv3ngers</span></span>
+        </div>
+        <h3 class="card-title"><a href="https://example.com/threat-intel/sample--cyberav3ngers-plc-1" target="_blank">Iran-aligned CyberAv3ngers activity reaches exposed water control systems</a></h3>
+        <div class="card-tags"><span class="tag cloud">cloud</span></div>
+
+        <div class="card-footer">
+          <div class="reach-bar">
+            <span class="reach-label">Industry Reach</span>
+            <div class="reach-meter"><div class="reach-fill" style="width:20%"></div></div>
+            <span class="reach-score">20</span>
+          </div>
+          <a class="cta-arrow" href="https://example.com/threat-intel/sample--cyberav3ngers-plc-1" target="_blank">Read →</a>
+        </div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic exercise report based on public tradecraft: default credentials enabled PLC access and unauthorized set-point changes.</li></ul></div>
+
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='dim'>No IOCs extracted from description text.</div></div>
+        <div class="pop-section"><h4>📰 Sources (1)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--cyberav3ngers-plc-1" target="_blank"><span class="pop-article-pub">CISA</span><span class="pop-article-title">Iran-aligned CyberAv3ngers activity reaches exposed water control systems</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Adversary attribution: CyberAv3ngers. Pivot via OpenCTI ThreatActor SDO for known IOCs.</li><li>Customer ask: confirm whether their threat model accounts for this TTP.</li></ul></div>
+      </div>
+      </article>
+
+      <div class="ceo-overflow ceo-only">
+        + 4 more clusters in this window —
+        switch to <strong>CISO Brief</strong> for the full landscape.
+      </div>
+    </div>
+    <div class="filter-empty" data-empty="cloud">No Cloud Threat Watch stories match this filter.</div>
+  </section>
+
+  <!-- CONTAINMENT IMPACT -->
+  <section class="section" id="containment" data-views="full ceo ciso analyst">
+    <div class="section-head">
+      <span class="kicker">Where We Would Have Mattered</span>
+      <h2>Containment Impact</h2>
+      <span class="count">3 stories · network controls would have changed the outcome</span>
+    </div>
+    <p class="section-sub">
+      Incidents from the last 30 days where network controls —
+      microsegmentation, identity-aware egress, cross-cloud policy — would have stopped
+      or limited the attack. Use these in briefings and analyst conversations.
+    </p>
+    <div class="containment-grid">
+      <div class="containment-row">
+        <div class="containment-rank">1</div>
+        <div class="containment-story">
+          <div class="containment-story-pub">The DFIR Report</div>
+          <div class="containment-story-title"><a href="https://example.com/threat-intel/sample--teampcp-actions-1" target="_blank">TeamPCP supply-chain dependency enables credential theft from CI runners</a></div>
+          <div class="containment-meta-row"><span class="tag cloud">cloud</span><span class="tag cloud">cloud-cicd</span><span class="actor-chip">⚡ TeamPCP</span></div>
+        </div>
+        <div class="containment-impact">
+          <div class="containment-impact-label">If contained at the network</div>
+          <div class="containment-narrative">Egress policy on CI/CD pipelines would have blocked TeamPCP&#x27;s outbound callback before any credential left the runner.</div>
+          <div class="containment-matched"><span class="tag">supply chain</span><span class="tag">credential</span><span class="tag">named TA</span></div>
+        </div>
+      </div>
+
+      <div class="containment-row">
+        <div class="containment-rank">2</div>
+        <div class="containment-story">
+          <div class="containment-story-pub">CrowdStrike</div>
+          <div class="containment-story-title"><a href="https://example.com/threat-intel/sample--scattered-spider-okta-1" target="_blank">Scattered Spider impersonates Okta help desk for credential abuse</a></div>
+          <div class="containment-meta-row"><span class="tag cloud">cloud</span><span class="tag cloud">cloud-saas</span><span class="actor-chip">⚡ ShinyHunters / Scattered Spider</span></div>
+        </div>
+        <div class="containment-impact">
+          <div class="containment-impact-label">If contained at the network</div>
+          <div class="containment-narrative">OAuth-aware network policy would have flagged ShinyHunters / Scattered Spider&#x27;s cross-tenant token replay.</div>
+          <div class="containment-matched"><span class="tag">credential</span><span class="tag">identity</span><span class="tag">named TA</span></div>
+        </div>
+      </div>
+
+      <div class="containment-row">
+        <div class="containment-rank">3</div>
+        <div class="containment-story">
+          <div class="containment-story-pub">Palo Alto Unit 42</div>
+          <div class="containment-story-title"><a href="https://example.com/threat-intel/sample--ransomware-cloud-backup-1" target="_blank">RansomHub uses credential abuse before cloud backup encryption</a></div>
+          <div class="containment-meta-row"><span class="tag cloud">cloud</span><span class="tag cloud">cloud-aws</span><span class="actor-chip">⚡ RansomHub</span></div>
+        </div>
+        <div class="containment-impact">
+          <div class="containment-impact-label">If contained at the network</div>
+          <div class="containment-narrative">Identity-aware network gates would have caught RansomHub&#x27;s credential reuse across cloud accounts.</div>
+          <div class="containment-matched"><span class="tag">credential</span><span class="tag">ransomware</span><span class="tag">named TA</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THREAT ACTOR WATCH -->
+  <section class="section" id="actors" data-views="full ciso analyst">
+    <div class="section-head">
+      <span class="kicker">Adversaries</span>
+      <h2>Threat Actor Watch</h2>
+      <span class="count">Top 5 by mentions · 30d</span>
+    </div>
+    <p class="section-sub">
+      Named adversaries with detected activity in the last 30 days.
+      WoW deltas (↑/↓) appear only for actors that had reportable activity in the
+      prior week, so we never show a fake "spike" caused by recently-ingested
+      historical context.
+    </p>
+    <div class="actor-grid">
+      <div class="actor-card">
+        <div class="actor-name">APT29 </div>
+        <div class="actor-aliases">TTPs: T1528 · T1078 · T1566</div>
+        <div class="actor-stats">
+          <span class="actor-stat-label">Mentions 30d</span>
+          <span class="actor-stat-value">2</span>
+        </div>
+        <div class="actor-stats">
+          <span class="actor-stat-label">Last 7d</span>
+          <span class="actor-stat-value">2</span>
+        </div>
+        <div class="actor-best"><a href="https://example.com/threat-intel/sample--apt29-device-code-2" target="_blank">Cloud identity campaign uses device authorization grants</a></div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic corroborating advisory: suspicious device authorization grants preceded mailbox access from login.example.test.</li></ul></div>
+        <div class="pop-section"><h4>🎯 MITRE ATT&CK</h4><div class="pop-mitre-list"><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1528/" target="_blank"><code>T1528</code><span>Steal Application Access Token</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1078/" target="_blank"><code>T1078</code><span>Valid Accounts</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1566/" target="_blank"><code>T1566</code><span>Phishing</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1078/004/" target="_blank"><code>T1078.004</code><span>Cloud Accounts</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1098/" target="_blank"><code>T1098</code><span>Account Manipulation</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1505/" target="_blank"><code>T1505</code><span>Server Software Component</span></a></div></div>
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='dim'>No IOCs extracted from description text.</div></div>
+        <div class="pop-section"><h4>📰 Sources (2)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--apt29-device-code-2" target="_blank"><span class="pop-article-pub">CISA</span><span class="pop-article-title">Cloud identity campaign uses device authorization grants</span></a><a class="pop-article" href="https://example.com/threat-intel/sample--apt29-device-code-1" target="_blank"><span class="pop-article-pub">Microsoft Security Blog</span><span class="pop-article-title">APT29 expands OAuth device-code phishing against cloud tenants</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Adversary attribution: APT29. Pivot via OpenCTI ThreatActor SDO for known IOCs.</li><li>Cloud surface impacted: AZURE, SAAS. Confirm customer estate exposure first.</li><li>Customer ask: &quot;Do you run anything in AZURE, SAAS?&quot; If yes, validate posture against this TTP.</li></ul></div>
+      </div>
+      </div>
+
+      <div class="actor-card">
+        <div class="actor-name">ShinyHunters / Scattered Spider </div>
+        <div class="actor-aliases">TTPs: T1566 · T1552 · T1078</div>
+        <div class="actor-stats">
+          <span class="actor-stat-label">Mentions 30d</span>
+          <span class="actor-stat-value">2</span>
+        </div>
+        <div class="actor-stats">
+          <span class="actor-stat-label">Last 7d</span>
+          <span class="actor-stat-value">2</span>
+        </div>
+        <div class="actor-best"><a href="https://example.com/threat-intel/sample--scattered-spider-okta-1" target="_blank">Scattered Spider impersonates Okta help desk for credential abuse</a></div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic exercise report: operators impersonated employees, reset MFA, and created new sessions from reserved address 203.0.113.44.</li></ul></div>
+        <div class="pop-section"><h4>🎯 MITRE ATT&CK</h4><div class="pop-mitre-list"><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1566/" target="_blank"><code>T1566</code><span>Phishing</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1552/" target="_blank"><code>T1552</code><span>Unsecured Credentials</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1078/" target="_blank"><code>T1078</code><span>Valid Accounts</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1528/" target="_blank"><code>T1528</code><span>Steal Application Access Token</span></a></div></div>
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='ioc-group'><span class='ioc-label'>IPs</span><code>203.0.113.44</code></div></div>
+        <div class="pop-section"><h4>📰 Sources (2)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--scattered-spider-okta-1" target="_blank"><span class="pop-article-pub">CrowdStrike</span><span class="pop-article-title">Scattered Spider impersonates Okta help desk for credential abuse</span></a><a class="pop-article" href="https://example.com/threat-intel/sample--scattered-spider-okta-2" target="_blank"><span class="pop-article-pub">Mandiant</span><span class="pop-article-title">Okta identity takeover follows credential abuse in reset workflows</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Adversary attribution: ShinyHunters / Scattered Spider. Pivot via OpenCTI ThreatActor SDO for known IOCs.</li><li>Cloud surface impacted: SAAS. Confirm customer estate exposure first.</li><li>Containment angle: OAuth-aware network policy would have flagged ShinyHunters / Scattered Spider&#x27;s cross-tenant token replay.</li><li>Customer ask: &quot;Do you run anything in SAAS?&quot; If yes, validate posture against this TTP.</li></ul></div>
+      </div>
+      </div>
+
+      <div class="actor-card">
+        <div class="actor-name">TeamPCP </div>
+        <div class="actor-aliases">TTPs: T1195 · T1554 · T1552</div>
+        <div class="actor-stats">
+          <span class="actor-stat-label">Mentions 30d</span>
+          <span class="actor-stat-value">2</span>
+        </div>
+        <div class="actor-stats">
+          <span class="actor-stat-label">Last 7d</span>
+          <span class="actor-stat-value">2</span>
+        </div>
+        <div class="actor-best"><a href="https://example.com/threat-intel/sample--teampcp-actions-1" target="_blank">TeamPCP supply-chain dependency enables credential theft from CI runners</a></div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic exercise report: a modified GitHub Actions dependency exposed cloud credentials and contacted hxxps://runner-check[.]example[.]test/a.</li></ul></div>
+        <div class="pop-section"><h4>🎯 MITRE ATT&CK</h4><div class="pop-mitre-list"><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1195/" target="_blank"><code>T1195</code><span>Supply Chain Compromise</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1554/" target="_blank"><code>T1554</code><span>Compromise Client Software Binary</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1552/" target="_blank"><code>T1552</code><span>Unsecured Credentials</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1078/" target="_blank"><code>T1078</code><span>Valid Accounts</span></a></div></div>
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='dim'>No IOCs extracted from description text.</div></div>
+        <div class="pop-section"><h4>📰 Sources (2)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--teampcp-actions-2" target="_blank"><span class="pop-article-pub">GitHub Security Advisories</span><span class="pop-article-title">Malicious GitHub dependency enables AWS credential theft</span></a><a class="pop-article" href="https://example.com/threat-intel/sample--teampcp-actions-1" target="_blank"><span class="pop-article-pub">The DFIR Report</span><span class="pop-article-title">TeamPCP supply-chain dependency enables credential theft from CI runners</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Adversary attribution: TeamPCP. Pivot via OpenCTI ThreatActor SDO for known IOCs.</li><li>Cloud surface impacted: CICD. Confirm customer estate exposure first.</li><li>Containment angle: Egress policy on CI/CD pipelines would have blocked TeamPCP&#x27;s outbound callback before any credential left the runner.</li><li>Customer ask: &quot;Do you run anything in CICD?&quot; If yes, validate posture against this TTP.</li></ul></div>
+      </div>
+      </div>
+
+      <div class="actor-card">
+        <div class="actor-name">CyberAv3ngers </div>
+        <div class="actor-aliases">Last seen: 2026-08-28</div>
+        <div class="actor-stats">
+          <span class="actor-stat-label">Mentions 30d</span>
+          <span class="actor-stat-value">1</span>
+        </div>
+        <div class="actor-stats">
+          <span class="actor-stat-label">Last 7d</span>
+          <span class="actor-stat-value">1</span>
+        </div>
+        <div class="actor-best"><a href="https://example.com/threat-intel/sample--cyberav3ngers-plc-1" target="_blank">Iran-aligned CyberAv3ngers activity reaches exposed water control systems</a></div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic exercise report based on public tradecraft: default credentials enabled PLC access and unauthorized set-point changes.</li></ul></div>
+
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='dim'>No IOCs extracted from description text.</div></div>
+        <div class="pop-section"><h4>📰 Sources (1)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--cyberav3ngers-plc-1" target="_blank"><span class="pop-article-pub">CISA</span><span class="pop-article-title">Iran-aligned CyberAv3ngers activity reaches exposed water control systems</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Adversary attribution: CyberAv3ngers. Pivot via OpenCTI ThreatActor SDO for known IOCs.</li><li>Customer ask: confirm whether their threat model accounts for this TTP.</li></ul></div>
+      </div>
+      </div>
+
+      <div class="actor-card">
+        <div class="actor-name">RansomHub <span class="actor-stat-value down">↓1</span></div>
+        <div class="actor-aliases">TTPs: T1486 · T1567 · T1552</div>
+        <div class="actor-stats">
+          <span class="actor-stat-label">Mentions 30d</span>
+          <span class="actor-stat-value">1</span>
+        </div>
+        <div class="actor-stats">
+          <span class="actor-stat-label">Last 7d</span>
+          <span class="actor-stat-value">0</span>
+        </div>
+        <div class="actor-best"><a href="https://example.com/threat-intel/sample--ransomware-cloud-backup-1" target="_blank">RansomHub uses credential abuse before cloud backup encryption</a></div>
+        <div class="card-popover">
+        <div class="pop-section"><h4>📌 Key points</h4><ul><li>Synthetic exercise report: valid cloud credentials were used to enumerate and delete backup snapshots before endpoint encryption.</li></ul></div>
+        <div class="pop-section"><h4>🎯 MITRE ATT&CK</h4><div class="pop-mitre-list"><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1486/" target="_blank"><code>T1486</code><span>Data Encrypted for Impact</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1567/" target="_blank"><code>T1567</code><span>Exfiltration Over Web Service</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1552/" target="_blank"><code>T1552</code><span>Unsecured Credentials</span></a><a class="pop-mitre" href="https://attack.mitre.org/techniques/T1078/" target="_blank"><code>T1078</code><span>Valid Accounts</span></a></div></div>
+        <div class="pop-section"><h4>🧪 IOCs</h4><div class='dim'>No IOCs extracted from description text.</div></div>
+        <div class="pop-section"><h4>📰 Sources (1)</h4><a class="pop-article" href="https://example.com/threat-intel/sample--ransomware-cloud-backup-1" target="_blank"><span class="pop-article-pub">Palo Alto Unit 42</span><span class="pop-article-title">RansomHub uses credential abuse before cloud backup encryption</span></a></div>
+        <div class="pop-section"><h4>💬 Talking points</h4><ul><li>Adversary attribution: RansomHub. Pivot via OpenCTI ThreatActor SDO for known IOCs.</li><li>Cloud surface impacted: AWS. Confirm customer estate exposure first.</li><li>Containment angle: Identity-aware network gates would have caught RansomHub&#x27;s credential reuse across cloud accounts.</li><li>Customer ask: &quot;Do you run anything in AWS?&quot; If yes, validate posture against this TTP.</li></ul></div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INDUSTRY PULSE — single-paragraph narrative -->
+  <section class="section" id="pulse" data-views="full analyst">
+    <div class="section-head">
+      <span class="kicker">Broader Signal</span>
+      <h2>Industry Pulse</h2>
+      <span class="count">synthesized from 0 non-cloud stories</span>
+    </div>
+    <p class="section-sub">
+      A single-paragraph narrative of broader industry signal — context for customer
+      and analyst conversations even when stories don't land directly on cloud workloads.
+    </p>
+    <div class="pulse-narrative"><em>Broader signal was quiet this period.</em></div>
+  </section>
+
+  <!-- INDUSTRY TRENDS -->
+  <section class="section" id="trends" data-views="full ceo analyst">
+    <div class="section-head">
+      <span class="kicker">2026 Patterns</span>
+      <h2>Industry Trends</h2>
+      <span class="count">2 active trends · synthesized across 10 reports</span>
+    </div>
+    <p class="section-sub">
+      How the threat landscape is moving in 2026. Trends synthesized by clustering
+      report titles + threat-actor attribution + tag patterns across the 30-day window.
+      WoW deltas (↑/↓) appear once a trend has a comparable prior-week baseline — until then,
+      the absolute 30-day count is the honest signal.
+    </p>
+    <div class="trends-grid">
+      <div class="trend-card">
+        <div class="trend-head">
+          <span class="trend-icon">🔑</span>
+          <span class="trend-title">Identity-driven cloud takeover</span>
+          <span class="trend-count"><strong>3</strong> reports</span>
+        </div>
+        <div class="trend-narrative">3 reports involve adversaries living off identity tokens rather than exploits. Help-desk vishing, OAuth abuse, and federated trust are the new beachheads.</div>
+        <div class="trend-examples">
+          <div class="trend-examples-label">Representative reports</div>
+
+          <div class="trend-example">
+            <span class="trend-example-pub">Microsoft Security Blog</span><a href="https://example.com/threat-intel/sample--apt29-device-code-1" target="_blank">APT29 expands OAuth device-code phishing against cloud tenants</a>
+          </div>
+          <div class="trend-example">
+            <span class="trend-example-pub">CrowdStrike</span><a href="https://example.com/threat-intel/sample--scattered-spider-okta-1" target="_blank">Scattered Spider impersonates Okta help desk for credential abuse</a>
+          </div>
+          <div class="trend-example">
+            <span class="trend-example-pub">Mandiant</span><a href="https://example.com/threat-intel/sample--scattered-spider-okta-2" target="_blank">Okta identity takeover follows credential abuse in reset workflows</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="trend-card">
+        <div class="trend-head">
+          <span class="trend-icon">🌐</span>
+          <span class="trend-title">State-aligned cloud espionage</span>
+          <span class="trend-count"><strong>3</strong> reports</span>
+        </div>
+        <div class="trend-narrative">3 reports tie to state-aligned threat actors targeting cloud infrastructure. Persistent, long-dwell, intel-gathering posture rather than smash-and-grab.</div>
+        <div class="trend-examples">
+          <div class="trend-examples-label">Representative reports</div>
+
+          <div class="trend-example">
+            <span class="trend-example-pub">CISA</span><a href="https://example.com/threat-intel/sample--apt29-device-code-2" target="_blank">Cloud identity campaign uses device authorization grants</a>
+          </div>
+          <div class="trend-example">
+            <span class="trend-example-pub">CISA</span><a href="https://example.com/threat-intel/sample--cyberav3ngers-plc-1" target="_blank">Iran-aligned CyberAv3ngers activity reaches exposed water control systems</a>
+          </div>
+          <div class="trend-example">
+            <span class="trend-example-pub">Microsoft Security Blog</span><a href="https://example.com/threat-intel/sample--apt29-device-code-1" target="_blank">APT29 expands OAuth device-code phishing against cloud tenants</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VENDOR WATCH -->
+  <section class="section" id="vendors" data-views="full ciso analyst">
+    <div class="section-head">
+      <span class="kicker">Customer Stack</span>
+      <h2>Vendor Watch</h2>
+      <span class="count">7 Tier 1 / 0 Tier 2 mentions · 30d</span>
+    </div>
+    <p class="section-sub">
+      Vendor mentions across the last 30 days.
+      Tier 1 = every mention; Tier 2 = breach-shaped events only.
+    </p>
+    <div class="vendor-grid">
+      <div class="vendor-panel">
+        <h3 class="tier-1">Tier 1 · top mentions</h3>
+        <div class="vendor-sub">High-touch SaaS / IaaS / EDR / SIEM</div>
+        <div class="vendor-list">
+          <div class="vendor-item">
+            <span class="vendor-item-name">AWS</span>
+            <span class="vendor-item-meta">3 mentions · latest: RansomHub uses credential abuse before cloud backup enc…</span>
+          </div>
+          <div class="vendor-item">
+            <span class="vendor-item-name">Microsoft</span>
+            <span class="vendor-item-meta">2 mentions · latest: Cloud identity campaign uses device authorization grant…</span>
+          </div>
+          <div class="vendor-item">
+            <span class="vendor-item-name">Azure</span>
+            <span class="vendor-item-meta">2 mentions · latest: Cloud identity campaign uses device authorization grant…</span>
+          </div>
+          <div class="vendor-item">
+            <span class="vendor-item-name">Okta</span>
+            <span class="vendor-item-meta">2 mentions · latest: Scattered Spider impersonates Okta help desk for creden…</span>
+          </div>
+          <div class="vendor-item">
+            <span class="vendor-item-name">Salesforce</span>
+            <span class="vendor-item-meta">2 mentions · latest: Scattered Spider impersonates Okta help desk for creden…</span>
+          </div>
+          <div class="vendor-item">
+            <span class="vendor-item-name">GitHub</span>
+            <span class="vendor-item-meta">2 mentions · latest: TeamPCP supply-chain dependency enables credential thef…</span>
+          </div>
+          <div class="vendor-item">
+            <span class="vendor-item-name">Google Cloud</span>
+            <span class="vendor-item-meta">1 mention · latest: Indirect prompt injection drives unauthorized AI agent …</span>
+          </div></div>
+      </div>
+      <div class="vendor-panel">
+        <h3 class="tier-2">Tier 2 · top mentions</h3>
+        <div class="vendor-sub">DevTools, observability, secrets, infra-as-code</div>
+        <div class="vendor-empty"><div class="quiet">🌙</div><div>No mentions in this window.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHIVE -->
+  <section class="section" id="archive" data-views="full">
+    <div class="section-head">
+      <span class="kicker">Lookback</span>
+      <h2>Recent briefings</h2>
+    </div>
+    <div class="pulse-list">
+      <div class="pulse-row">
+        <span class="pulse-pub">2026-09-02</span>
+        <span class="pulse-title">This briefing · 30-day rollup (10 reports)</span>
+        <span></span>
+        <span class="pulse-conf">live</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div>
+    <h4>Coverage</h4>
+    <div class="footer-stat">9 feeds</div>
+    <div class="footer-stat">8 actor mentions</div>
+    <div class="footer-stat">10 cloud reports</div>
+    <div class="footer-stat">2 AI reports</div>
+  </div>
+  <div>
+    <h4>Sources</h4>
+    <ul><li>CISA</li><li>Microsoft Security Blog</li><li>CrowdStrike</li><li>Mandiant</li><li>The DFIR Report</li><li>GitHub Security Advisories</li></ul>
+  </div>
+  <div>
+    <h4>Briefing</h4>
+    <ul>
+      <li>Window: Past 30 days</li>
+      <li>Refreshed: 2026-09-02 21:52 UTC</li>
+      <li>Powered by OpenCTI + RSS</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Methodology</h4>
+    <ul>
+      <li>Industry Reach Index (pubs × sectors × architecture diversity)</li>
+      <li>Threat-actor merge tracking</li>
+      <li>MITRE ATT&CK mapping per story</li>
+      <li>Containment-relevance scoring</li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+  (function() {
+    const tagChips = document.querySelectorAll('.filter-chip[data-tag]');
+    const reachChips = document.querySelectorAll('.filter-chip[data-reach]');
+    const filterable = document.querySelectorAll('[data-tags]');
+    const cloudCards = document.querySelectorAll('.threat-card[data-reach]');
+    const emptyStates = document.querySelectorAll('.filter-empty');
+    const resetBtn = document.querySelector('[data-reset]');
+    const searchInput = document.querySelector('[data-report-search]');
+    const viewBtns = document.querySelectorAll('.view-btn[data-view]');
+    const viewableSections = document.querySelectorAll('[data-views]');
+
+    function applyView(view) {
+      // Drive view-scoped CSS (`.ceo-hide` / `.ceo-only`) via a body class so
+      // we don't fight with the per-card filter logic for `style.display`.
+      document.body.classList.remove('view-full','view-ceo','view-ciso','view-analyst');
+      document.body.classList.add('view-' + view);
+      viewBtns.forEach(b => b.classList.toggle('active', b.dataset.view === view));
+      viewableSections.forEach(sec => {
+        const allowed = sec.dataset.views.split(' ');
+        sec.style.display = allowed.includes(view) ? '' : 'none';
+      });
+    }
+    viewBtns.forEach(b => b.addEventListener('click', () => applyView(b.dataset.view)));
+    // Initialize body class so CSS rules apply on first paint
+    document.body.classList.add('view-full');
+
+    let currentTag = 'all';
+    let currentReach = 'any';
+    let currentSearch = '';
+
+    function inReachRange(score, key) {
+      if (key === 'any') return true;
+      if (key === '80+') return score >= 80;
+      if (key === '60')  return score >= 60 && score < 80;
+      if (key === '40')  return score >= 40 && score < 60;
+      if (key === '0')   return score < 40;
+      return true;
+    }
+
+    function applyFilters() {
+      tagChips.forEach(c => c.classList.toggle('active', c.dataset.tag === currentTag));
+      reachChips.forEach(c => c.classList.toggle('active', c.dataset.reach === currentReach));
+
+      // Tag filter applies to all items with data-tags
+      filterable.forEach(el => {
+        const matchTag = currentTag === 'all' || el.dataset.tags.split(' ').includes(currentTag);
+        // Reach filter only narrows cloud cards
+        let matchReach = true;
+        if (el.dataset.reach !== undefined) {
+          matchReach = inReachRange(parseInt(el.dataset.reach, 10), currentReach);
+        }
+        const matchSearch = !currentSearch || el.textContent.toLowerCase().includes(currentSearch);
+        el.style.display = (matchTag && matchReach && matchSearch) ? '' : 'none';
+      });
+
+      // Per-section empty states
+      const cloudVisible = [...document.querySelectorAll('.cloud-grid .threat-card')]
+        .some(el => el.style.display !== 'none');
+      const pulseVisible = [...document.querySelectorAll('.pulse-list .pulse-row')]
+        .some(el => el.style.display !== 'none');
+      emptyStates.forEach(es => {
+        if (es.dataset.empty === 'cloud') es.style.display = cloudVisible ? 'none' : 'block';
+        if (es.dataset.empty === 'pulse') es.style.display = pulseVisible ? 'none' : 'block';
+      });
+    }
+
+    tagChips.forEach(c => c.addEventListener('click', () => {
+      currentTag = c.dataset.tag;
+      applyFilters();
+    }));
+    reachChips.forEach(c => c.addEventListener('click', () => {
+      currentReach = c.dataset.reach;
+      applyFilters();
+    }));
+    if (searchInput) searchInput.addEventListener('input', () => {
+      currentSearch = searchInput.value.trim().toLowerCase();
+      applyFilters();
+    });
+    if (resetBtn) resetBtn.addEventListener('click', () => {
+      currentTag = 'all';
+      currentReach = 'any';
+      currentSearch = '';
+      if (searchInput) searchInput.value = '';
+      applyFilters();
+    });
+  })();
+</script>
+</body>
+</html>

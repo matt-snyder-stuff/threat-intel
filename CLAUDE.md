@@ -24,6 +24,8 @@ generator/build.py    →   threat-watch.html  +  threat-watch-data.json
 
 Run the whole pipeline with:
 ```bash
+python3 quickstart.py                    # deterministic offline conference demo
+python3 run.py --source sample --build  # bundled synthetic source
 python3 run.py --source splunk --build   # pull from Splunk REST API
 python3 run.py --source rss --build      # no account needed
 python3 run.py --source opencti --build
@@ -111,12 +113,14 @@ source .env
 ## Repo structure
 
 ```
+quickstart.py                 # deterministic offline build/serve entry point
 run.py                        # top-level CLI: --source, --build
 check_pipeline.py             # standalone health check (make status / /check-pipeline)
 environment.md                # YOUR DEPLOYMENT — update indexes, sourcetypes, key fields
 prior-hunts/                  # auto-written hunt index — one JSON per /peak-hunt run
 sources/
 ├── base.py                   # shared helpers: actors, publishers, vendors, labels
+├── sample.py                 # deterministic bundled conference dataset
 ├── splunk.py                 # Splunk REST API source (job submit → poll → results)
 ├── opencti.py                # OpenCTI GraphQL source
 ├── slack.py                  # Slack channel source
@@ -157,7 +161,7 @@ agent/
 
 Each item must have: `id`, `name`, `created` (timezone-aware UTC datetime), `confidence` (0-100), `all_labels` (list of strings like `"cloud"`, `"ai-llm"`), `publisher`, `url`, `tas` (threat actor names), `t1_vendors`, `t2_vendors`, `description`.
 
-All five sources in `sources/` write this exact schema. `build.py` is source-agnostic.
+All six sources in `sources/` write this exact schema. `build.py` is source-agnostic.
 
 ---
 

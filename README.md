@@ -1,6 +1,6 @@
 # Threat Intel
 
-> **AI-native threat intelligence pipeline** — ingest from OpenCTI, Slack, or RSS feeds; score and cluster by cloud/AI relevance; generate a rolling dashboard, daily Slack digests, and SIEM-ready hunt queries — all driven by Claude agents.
+> **AI-native threat intelligence pipeline** — ingest from OpenCTI, Slack, RSS, Splunk, or STIX/TAXII; prioritize reports against your environment; generate a rolling dashboard and turn intelligence into reviewable detection artifacts.
 
 Demo project for the talk **"Building AI Agents for Threat Intel"**.
 
@@ -16,10 +16,36 @@ Demo project for the talk **"Building AI Agents for Threat Intel"**.
 6. **Generates** hunt queries (Splunk SPL, KQL, Sigma) from the top signals
 7. **Enriches** extracted IOCs via public no-auth APIs
 
-Zero pip dependencies for the core pipeline. Python 3.9+. Runs locally or on a schedule via Claude Code's `CronCreate`.
+Zero pip dependencies for the core pipeline. Python 3.9+. Claude Code is optional.
 (The `demo/sec1390` sub-project requires `pdfplumber` — see its own `requirements.txt`.)
 
-Current release: `1.2.0`. See [`CHANGELOG.md`](CHANGELOG.md) for compatibility notes and release history.
+Current release: `1.3.0`. See [`CHANGELOG.md`](CHANGELOG.md) for compatibility notes and release history.
+
+## Try it in two minutes
+
+No account, API key, package installation, or network access is required after cloning:
+
+```bash
+git clone https://github.com/matt-snyder-stuff/threat-intel.git
+cd threat-intel
+python3 quickstart.py --serve
+```
+
+The command builds a dashboard from 10 clearly labeled synthetic reports, opens
+`http://127.0.0.1:8080/threat-watch.html`, and keeps the local server running
+until you press `Ctrl-C`. Use `--port 8081` if port 8080 is occupied.
+
+Prefer Make? `make demo` only builds the files, while `make quickstart` builds,
+opens, and serves them. Generated artifacts live in `data/`.
+
+You can also [see the dashboard preview](docs/dashboard-preview.png) or download
+the committed [self-contained HTML](demo/prebuilt/threat-watch.html) without
+running the pipeline. The sample uses reserved IP ranges, `.test` domains, and
+fictionalized exercise reporting; it must not be treated as current intelligence.
+
+![Threat Watch conference sample dashboard](docs/dashboard-preview.png)
+
+<img src="docs/repository-qr.png" alt="QR code for the threat-intel GitHub repository" width="140">
 
 ---
 
@@ -58,12 +84,9 @@ digest agent            threat-hunter               ioc-enricher
 
 ---
 
-## Quickstart
+## Connect live data
 
 ```bash
-git clone https://github.com/matt-snyder-stuff/threat-intel.git
-cd threat-intel
-
 # Option A — Splunk REST API (your threat intel index or any search)
 export SPLUNK_URL=https://your-instance.splunkcloud.com:8089
 export SPLUNK_TOKEN=your-api-token
@@ -132,14 +155,15 @@ The demo parses CyberAv3ngers/Iran PLC activity and TeamPCP CI/CD supply-chain i
 
 ## Sources
 
-All five sources write the same pickle schema. `build.py` never knows which one ran.
+All six sources write the same pickle schema. `build.py` never knows which one ran.
 
 | Source | How it works | Required env vars |
 |--------|-------------|-------------------|
+| `sample` | Loads the bundled synthetic conference dataset with relative timestamps. Deterministic and offline. | none |
 | `splunk` | Runs a search against Splunk via the **REST API** (job submit → poll → results). `SPLUNK_TOKEN` is a **Splunk REST API token** (Settings → Tokens in Splunk Web, not an HEC token — HEC is write-only and cannot run searches). Maps result fields to the item schema; auto-detects labels and threat actors from text. Works with Splunk Cloud and on-prem. | `SPLUNK_URL` + `SPLUNK_TOKEN` (or `SPLUNK_USERNAME` + `SPLUNK_PASSWORD`) |
 | `opencti` | Pages through your OpenCTI instance's GraphQL API for reports labeled `cloud` or `ai`. Fetches confidence scores, SDO-linked threat actors, and a published-dates sidecar for accurate WoW math. | `OPENCTI_URL`, `OPENCTI_TOKEN` |
 | `slack` | Reads messages from a Slack channel via `conversations.history`. Treats each message as a report — URLs become the article link, auto-detects cloud/AI labels from text. | `SLACK_TOKEN`, `SLACK_CHANNEL_ID` |
-| `rss` | Fetches and parses RSS and Atom feeds directly using stdlib `urllib` + `xml.etree`. No OpenCTI, no Slack, no extra installs. | none — `RSS_FEEDS` is optional (defaults to 40+ curated feeds in `sources/feeds.py`) |
+| `rss` | Fetches RSS/Atom with the standard library. Defaults to four starter feeds for a fast first run; set `RSS_FEED_SET=full` for the 40+ feed catalog. | none |
 | `stix` | Ingests STIX 2.x Report, Indicator, Threat Actor, Attack Pattern, Campaign, Malware, and Vulnerability objects. Supports TAXII 2.0/2.1 servers (auto-discovers API root and collections), raw STIX bundle URLs, and local bundle files. Zero extra dependencies (pure stdlib). | at least one of: `TAXII_URL`, `STIX_URL`, or `STIX_FILE` |
 
 Optional env vars shared across sources:
@@ -210,6 +234,11 @@ platform.
 ---
 
 ## Claude Agents
+
+These optional workflows require Claude Code. Slack posting additionally requires
+a configured Slack connector or equivalent posting tool; live Splunk agents need
+the read-only credentials documented below. The core sample, ingestion pipeline,
+dashboard, JSON export, and detection validator do not require Claude Code.
 
 Drop these into your `.claude/agents/` directory to use them with [Claude Code](https://claude.ai/code).
 
@@ -366,7 +395,7 @@ Each item needs:
     "iocs":                 dict,       # {cve: [...], ipv4: [...], domain: [...], url: [...],
                                         #  md5: [...], sha1: [...], sha256: [...]}
     # ── Handling and lifecycle ────────────────────────────────────────────────
-    "source_type": str,            # rss / slack / splunk / opencti / stix
+    "source_type": str,            # sample / rss / slack / splunk / opencti / stix
     "source_reliability": str,     # Admiralty A-F; distinct from confidence
     "tlp": str,                    # TLP 2.0; unknown sources default to TLP:AMBER
     "valid_until": str,            # ISO datetime or "" when unknown
@@ -384,7 +413,8 @@ directly for better fidelity. `build.py`, all agents, and all commands work with
 ## Repo structure
 
 ```
-run.py                         # CLI: --source {splunk,opencti,slack,rss,stix} [--build]
+quickstart.py                  # offline attendee path: build and optionally serve
+run.py                         # CLI: --source {sample,splunk,opencti,slack,rss,stix} [--build]
 check_pipeline.py              # standalone pipeline health check (see make status)
 environment.md                 # YOUR DEPLOYMENT — update Splunk indexes, sourcetypes, fields
 environment-profile.example.json # weighted organization-specific relevance profile
@@ -393,11 +423,14 @@ operations/                    # review-state CLI and environment scoring
 detections/                    # validated, version-controlled Sigma and SPL artifacts
 sources/
 ├── base.py                    # shared: actors, publishers, vendors, label detection
+├── sample.py                  # deterministic bundled conference dataset
 ├── splunk.py                  # Splunk REST API source (job submit → poll → results)
 ├── opencti.py                 # OpenCTI GraphQL source
 ├── slack.py                   # Slack channel source
 ├── rss.py                     # RSS/Atom source
 └── stix.py                    # STIX 2.x / TAXII 2.x source (zero extra dependencies)
+sample-data/
+└── reports.json               # synthetic, reserved-indicator demo reports
 generator/
 └── build.py                   # aggregation + scoring → HTML + JSON
 splunk/
