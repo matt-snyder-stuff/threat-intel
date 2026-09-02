@@ -20,10 +20,10 @@ Optional env vars:
   PKL_OUT                — pickle output path
   PUB_SIDECAR            — published-dates sidecar path
 """
-import base64, os, sys, time, json
+import os, sys
 from datetime import datetime, timezone, timedelta
-from urllib import request, error
-from urllib.parse import urlencode
+
+from guardrails.splunk import SplunkClient
 
 from sources.base import (
     extract_tas, extract_vendors, extract_iocs, VENDORS_TIER1, VENDORS_TIER2,
@@ -39,96 +39,12 @@ DEFAULT_SEARCH = (
     "| sort -_time"
 )
 
-_VERIFY = os.environ.get("SPLUNK_VERIFY_SSL", "true").lower() != "false"
-
-
-def _auth_header():
-    token = os.environ.get("SPLUNK_TOKEN")
-    if token:
-        return {"Authorization": f"Bearer {token}"}
-    user = os.environ.get("SPLUNK_USERNAME", "")
-    pw   = os.environ.get("SPLUNK_PASSWORD", "")
-    if user and pw:
-        creds = base64.b64encode(f"{user}:{pw}".encode()).decode()
-        return {"Authorization": f"Basic {creds}"}
-    print("Error: set SPLUNK_TOKEN or SPLUNK_USERNAME+SPLUNK_PASSWORD", file=sys.stderr)
-    sys.exit(1)
-
-
-def _req(url, method="GET", data=None, headers=None):
-    hdrs = {**(headers or {}), **_auth_header(), "Content-Type": "application/x-www-form-urlencoded"}
-    body = urlencode(data).encode() if data else None
-    req  = request.Request(url, data=body, headers=hdrs, method=method)
-    # Python's urllib doesn't support context=ssl.create_default_context(verify=False)
-    # without importing ssl — import lazily so non-TLS paths don't pay the cost.
-    ctx = None
-    if not _VERIFY:
-        import ssl
-        print("Warning: SPLUNK_VERIFY_SSL=false — TLS certificate verification is disabled", file=sys.stderr)
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode    = ssl.CERT_NONE
-    try:
-        with request.urlopen(req, context=ctx) as resp:
-            return json.loads(resp.read())
-    except error.HTTPError as e:
-        body = e.read().decode(errors="replace")
-        print(f"Splunk HTTP {e.code}: {body[:400]}", file=sys.stderr)
-        raise
-
-
 def _run_search(base_url, spl, earliest):
-    """Submit a search job and return all results as a list of dicts."""
-    print(f"[splunk] Submitting search (earliest={earliest})", file=sys.stderr)
-
-    # 1 — Create job
-    resp = _req(
-        f"{base_url}/services/search/jobs",
-        method="POST",
-        data={
-            "search": spl if spl.lstrip().startswith("search ") else f"search {spl}",
-            "earliest_time": earliest,
-            "latest_time": "now",
-            "output_mode": "json",
-            "exec_mode": "normal",
-        },
-    )
-    sid = resp["sid"]
-    print(f"[splunk] Job SID: {sid}", file=sys.stderr)
-
-    # 2 — Poll until done (max 4 minutes)
-    state = "UNKNOWN"
-    for attempt in range(120):
-        status = _req(f"{base_url}/services/search/jobs/{sid}?output_mode=json")
-        state  = status["entry"][0]["content"]["dispatchState"]
-        pct    = status["entry"][0]["content"].get("doneProgress", 0) * 100
-        print(f"[splunk] {state} ({pct:.0f}%)", file=sys.stderr, end="\r")
-        if state in ("DONE", "FAILED"):
-            break
-        time.sleep(2)
-    print(file=sys.stderr)
-    if state == "FAILED":
-        print("[splunk] Search job failed.", file=sys.stderr)
-        sys.exit(1)
-    if state != "DONE":
-        print(f"[splunk] Search timed out after {120 * 2}s (state={state}). "
-              "Try narrowing SPLUNK_EARLIEST or simplifying SPLUNK_SEARCH.", file=sys.stderr)
-        sys.exit(1)
-
-    # 3 — Fetch results (paginated)
-    results, offset = [], 0
-    while True:
-        page = _req(
-            f"{base_url}/services/search/jobs/{sid}/results"
-            f"?output_mode=json&count=500&offset={offset}"
-        )
-        rows = page.get("results", [])
-        results.extend(rows)
-        offset += len(rows)
-        if len(rows) < 500:
-            break
-    print(f"[splunk] Fetched {len(results)} results", file=sys.stderr)
-    return results
+    """Submit a policy-validated search and return bounded results."""
+    limit = int(os.environ.get("SPLUNK_MAX_RESULTS", "500"))
+    result = SplunkClient(base_url=base_url).search(spl, earliest, max_results=limit)
+    print(f"[splunk] Job {result.sid}: fetched {len(result.rows)} results", file=sys.stderr)
+    return result.rows
 
 
 def _parse_time(raw):
@@ -184,6 +100,7 @@ def run():
             conf = int(float(str(row.get("confidence", 75))))
         except (ValueError, TypeError):
             conf = 75
+        conf = max(0, min(100, conf))
 
         if not pub or pub == "Splunk":
             pub = publisher_from_url(url) if url else "Splunk"

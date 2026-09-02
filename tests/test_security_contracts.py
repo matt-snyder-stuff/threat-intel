@@ -25,6 +25,8 @@ class SecurityContracts(unittest.TestCase):
                 self.assertIn("count-first", text)
                 self.assertIn("earliest", text)
                 self.assertIn("never print credentials", text)
+                self.assertIn("guardrails.splunk.count_then_search", text)
+                self.assertNotIn("def splunk_search", text)
 
     def test_schema_is_valid_json_and_current(self):
         schema_path = ROOT / "schema" / "threat-watch-data.schema.json"

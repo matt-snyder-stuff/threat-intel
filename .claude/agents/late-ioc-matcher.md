@@ -227,58 +227,19 @@ index=<proxy_or_network> earliest=-<LOOKBACK>d
 | sort -count
 ```
 
-Use the Splunk REST helper from below. Fill in actual index names discovered in Phase 2. Always use `earliest=-<LOOKBACK>d` — default is 90 days.
+Use `guardrails.splunk.count_then_search` for every live query. Direct REST calls are prohibited because they bypass index, time, result-volume, and audit controls. Fill in allowlisted index names discovered in Phase 2 and use a bounded `earliest` value.
 
 ```python
-import base64, json, os, sys, time
-from urllib import request, error
-from urllib.parse import urlencode
+import os
+from guardrails.splunk import count_then_search
 
-BASE   = os.environ["SPLUNK_URL"].rstrip("/")
-TOKEN  = os.environ.get("SPLUNK_TOKEN")
-USER   = os.environ.get("SPLUNK_USERNAME")
-PW     = os.environ.get("SPLUNK_PASSWORD")
-VERIFY = os.environ.get("SPLUNK_VERIFY_SSL", "true").lower() != "false"
-LOOKBACK = os.environ.get("MATCH_LOOKBACK_DAYS", "90")
-
-def auth():
-    if TOKEN:
-        return {"Authorization": f"Bearer {TOKEN}"}
-    creds = base64.b64encode(f"{USER}:{PW}".encode()).decode()
-    return {"Authorization": f"Basic {creds}"}
-
-def get_ctx():
-    if not VERIFY:
-        import ssl
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        return ctx
-    return None
-
-def splunk_search(spl, earliest=None, limit=200):
-    earliest = earliest or f"-{LOOKBACK}d"
-    hdrs = {**auth(), "Content-Type": "application/x-www-form-urlencoded"}
-    body = urlencode({"search": spl if spl.lstrip().startswith("search") else "search " + spl,
-                      "earliest_time": earliest, "latest_time": "now",
-                      "output_mode": "json", "exec_mode": "normal"}).encode()
-    ctx  = get_ctx()
-    req  = request.Request(f"{BASE}/services/search/jobs", data=body, headers=hdrs, method="POST")
-    with request.urlopen(req, context=ctx) as r:
-        sid = json.loads(r.read())["sid"]
-    for _ in range(120):
-        req2 = request.Request(f"{BASE}/services/search/jobs/{sid}?output_mode=json", headers=auth())
-        with request.urlopen(req2, context=ctx) as r:
-            st = json.loads(r.read())
-        state = st["entry"][0]["content"]["dispatchState"]
-        if state in ("DONE", "FAILED"):
-            break
-        time.sleep(2)
-    req3 = request.Request(
-        f"{BASE}/services/search/jobs/{sid}/results?output_mode=json&count={limit}",
-        headers=auth())
-    with request.urlopen(req3, context=ctx) as r:
-        return json.loads(r.read()).get("results", [])
+lookback = os.environ.get("MATCH_LOOKBACK_DAYS", "90")
+results = count_then_search(
+    "index=proxy | search url=\"<ioc>\" | stats count",
+    "index=proxy | search url=\"<ioc>\" | stats count by host, user, url",
+    f"-{lookback}d", threshold=500, max_results=200,
+    agent="late-ioc-matcher", operator="<operator>", model="<model>",
+)
 ```
 
 **Rate-limit:** sleep 1 second between searches. If a search returns >500 results, add a time window around the intel report date ± 14 days to narrow scope before reporting.

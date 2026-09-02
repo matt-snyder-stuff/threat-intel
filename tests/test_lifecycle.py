@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 """Tests for CTI handling and lifecycle normalization."""
 from datetime import datetime, timedelta, timezone
+import os
+import tempfile
 import unittest
+from unittest import mock
 
-from sources.base import lifecycle_fields
+from sources.base import (
+    PUBLISHER_CONFIDENCE,
+    PUBLISHER_RELIABILITY,
+    atomic_write_text,
+    confidence_for_publisher,
+    lifecycle_fields,
+    source_reliability_for_publisher,
+    validate_item,
+)
 from sources.stix import _object_to_item
 
 
@@ -34,6 +45,26 @@ class LifecycleTests(unittest.TestCase):
         item = _object_to_item(obj, "test", now - timedelta(days=1), markings)
         self.assertEqual(item["tlp"], "TLP:RED")
         self.assertEqual(item["analyst_disposition"], "unreviewed")
+
+    def test_source_reliability_is_independent_of_item_confidence(self):
+        with mock.patch.dict(PUBLISHER_CONFIDENCE, {"Independent Source": 99}), \
+                mock.patch.dict(PUBLISHER_RELIABILITY, {"Independent Source": "D"}):
+            self.assertEqual(confidence_for_publisher("Independent Source"), 99)
+            self.assertEqual(source_reliability_for_publisher("Independent Source"), "D")
+
+    def test_atomic_write_preserves_previous_output_on_replace_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = os.path.join(directory, "dataset.json")
+            atomic_write_text(output, "old")
+            with mock.patch("sources.base.os.replace", side_effect=OSError("disk error")):
+                with self.assertRaises(OSError):
+                    atomic_write_text(output, "new")
+            with open(output) as handle:
+                self.assertEqual(handle.read(), "old")
+
+    def test_runtime_contract_rejects_incomplete_items(self):
+        with self.assertRaisesRegex(ValueError, "missing required fields"):
+            validate_item({"id": "incomplete"})
 
 
 if __name__ == "__main__":

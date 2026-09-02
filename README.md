@@ -19,6 +19,8 @@ Demo project for the talk **"Building AI Agents for Threat Intel"**.
 Zero pip dependencies for the core pipeline. Python 3.9+. Runs locally or on a schedule via Claude Code's `CronCreate`.
 (The `demo/sec1390` sub-project requires `pdfplumber` — see its own `requirements.txt`.)
 
+Current release: `1.1.0`. See [`CHANGELOG.md`](CHANGELOG.md) for compatibility notes and release history.
+
 ---
 
 ## Architecture
@@ -65,6 +67,7 @@ cd threat-intel
 # Option A — Splunk REST API (your threat intel index or any search)
 export SPLUNK_URL=https://your-instance.splunkcloud.com:8089
 export SPLUNK_TOKEN=your-api-token
+export SPLUNK_ALLOWED_INDEXES=threat_intel,main
 python3 run.py --source splunk --build
 
 # Option B — RSS feeds (no account needed, great for demos)
@@ -432,26 +435,34 @@ No agent writes to Splunk, modifies alerts, or runs destructive commands.
 
 ### Query safety expectations
 
-- Every live-search agent enforces **count-first discipline**: the first query always counts matching events before pulling raw records. Agents will not proceed with unbounded result pulls.
-- Searches use time-bounded `earliest=` parameters. Agents default to a maximum lookback window (90 days for `late-ioc-matcher`, 7 days for `splunk-hunter`) to prevent accidental full-index scans.
+- Every live-search agent calls `guardrails.splunk.count_then_search`. The runtime rejects destructive SPL commands, missing or wildcard indexes, non-allowlisted indexes, oversized lookbacks, and excessive result limits before network execution.
+- The runtime executes a count query before detail retrieval and blocks the detail query when the configured event threshold is exceeded.
+- Configure production boundaries with `SPLUNK_ALLOWED_INDEXES`, `SPLUNK_MAX_LOOKBACK_DAYS` (default `90`), and `SPLUNK_MAX_RESULTS` (default `500`).
 - In any interactive Claude Code session, generated SPL is shown to you before execution. For automated/cron use, review the agent definition and set `HUNT_FOCUS` or `MATCH_IOC_FOCUS` to scope searches before scheduling.
 
 ### Logging and review checkpoints
 
 - Agent runs produce a local report file (in `/tmp/` or a path you specify). These files contain the full query list, result counts, and findings — retain them for audit trails.
+- Every guarded Splunk request writes a structured audit event to `AGENT_AUDIT_LOG` (default `/tmp/threat-intel-agent-audit.jsonl`) containing identity metadata, query hash, time scope, job SID, and counts without credentials or raw SPL.
 - The `peak-hunt` agent writes a structured JSON record to `prior-hunts/` at closure. This serves as the institutional memory and audit log for all hunts run in this environment.
 - For production use, run agents under a **read-only Splunk role** with access limited to the indexes in `environment.md`. Do not use admin credentials.
 - Treat agent-generated SPL as a starting point, not a finished detection. Review generated correlation searches and Sigma rules before deploying to production alerting.
 
-These are operating controls expressed in agent definitions and documentation; they are not a substitute for platform enforcement. Production deployments should enforce read-only roles, index allowlists, search quotas, approval gates, and immutable audit export outside the model runtime. Local `/tmp` reports are working evidence, not a compliance-grade system of record.
+These runtime controls complement, but do not replace, Splunk read-only roles, platform search quotas, approval gates, and immutable audit export. Local JSONL records are working evidence, not a compliance-grade system of record.
 
 ### Continuous assurance
 
-GitHub Actions validates Python 3.9 and 3.13, checks every agent for an explicit untrusted-data boundary, runs the complete OpenCTI-to-dashboard path against a deterministic mock, validates schema and lifecycle fields, and checks Terraform formatting. Require the `validate` workflow before merging to `main`.
+GitHub Actions validates Python 3.9 and 3.13, checks every agent for an explicit untrusted-data boundary, contract-tests every source adapter, runs the complete OpenCTI-to-dashboard path against a deterministic mock, builds and inspects the non-root container, validates schema and lifecycle fields, and checks Terraform formatting. Require the `validate` workflow before merging to `main`.
 
 Local contributors can install the isolated validation dependency with `python3 -m pip install -r requirements-dev.txt`. The runtime pipeline remains standard-library only.
 
-Workflow actions are pinned to immutable commit SHAs, Terraform providers are locked, Dependabot monitors the development validator and GitHub Actions, and `CODEOWNERS` requests owner review. Repository branch protection must still be configured in GitHub to make those checks and reviews mandatory.
+Workflow actions and container bases are pinned to immutable digests, Terraform providers are locked, Dependabot monitors the development validator and GitHub Actions, and `CODEOWNERS` requests owner review. Protected `main` requires the Python 3.9 and 3.13 validation jobs before merging.
+
+### Compatibility policy
+
+- Python `3.9` through `3.13` is supported and checked in CI.
+- Additive canonical JSON changes increment the minor `schema_version`; removals or incompatible type changes increment its major version.
+- Git tags and GitHub releases use Semantic Versioning for the repository as a whole.
 
 ### Cost
 

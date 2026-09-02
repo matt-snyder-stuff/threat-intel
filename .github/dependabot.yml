@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # jsonschema 4.26+ requires Python 3.10; this project supports Python 3.9.
+      - dependency-name: jsonschema
+        versions: [">=4.26.0"]
 
   - package-ecosystem: github-actions
     directory: /
