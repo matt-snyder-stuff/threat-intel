@@ -4,7 +4,8 @@
   "title": "Threat Watch canonical dataset",
   "type": "object",
   "required": [
-    "generated_at", "window_days", "cutoff", "schema_version", "summary",
+    "generated_at", "window_days", "cutoff", "schema_version", "environment_context",
+    "handling", "review_summary", "summary",
     "executive_overview", "cloud_clusters", "threat_actors", "vendor_watch",
     "industry_trends", "containment_impact", "last_24h"
   ],
@@ -12,7 +13,40 @@
     "generated_at": {"type": "string", "format": "date-time"},
     "window_days": {"type": "integer", "minimum": 0},
     "cutoff": {"type": "string", "format": "date-time"},
-    "schema_version": {"const": "1.1"},
+    "schema_version": {"const": "1.2"},
+    "environment_context": {
+      "type": "object",
+      "required": ["enabled", "name", "matched_reports"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "name": {"type": "string", "minLength": 1},
+        "matched_reports": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "handling": {
+      "type": "object",
+      "required": ["max_tlp", "excluded_reports"],
+      "properties": {
+        "max_tlp": {"$ref": "#/$defs/tlp"},
+        "excluded_reports": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "review_summary": {
+      "type": "object",
+      "required": ["unreviewed", "actioned", "confirmed", "false_positive", "expired", "revoked", "owned"],
+      "properties": {
+        "unreviewed": {"type": "integer", "minimum": 0},
+        "actioned": {"type": "integer", "minimum": 0},
+        "confirmed": {"type": "integer", "minimum": 0},
+        "false_positive": {"type": "integer", "minimum": 0},
+        "expired": {"type": "integer", "minimum": 0},
+        "revoked": {"type": "integer", "minimum": 0},
+        "owned": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
     "summary": {
       "type": "object",
       "required": [
@@ -53,11 +87,15 @@
       "items": {
         "type": "object",
         "required": [
-          "reach_score", "size", "cloud_tags", "ai_tags", "publishers",
+          "reach_score", "environment_score", "environment_matches", "priority_score",
+          "size", "cloud_tags", "ai_tags", "publishers",
           "threat_actors", "lead", "reports"
         ],
         "properties": {
           "reach_score": {"type": "integer", "minimum": 0, "maximum": 100},
+          "environment_score": {"type": "integer", "minimum": 0, "maximum": 100},
+          "environment_matches": {"$ref": "#/$defs/stringArray"},
+          "priority_score": {"type": "integer", "minimum": 0, "maximum": 100},
           "size": {"type": "integer", "minimum": 1},
           "cloud_tags": {"$ref": "#/$defs/stringArray"},
           "ai_tags": {"$ref": "#/$defs/stringArray"},
@@ -167,7 +205,8 @@
       "type": "object",
       "required": [
         "id", "name", "url", "publisher", "confidence", "created", "labels",
-        "description", "source_type", "source_reliability", "tlp"
+        "description", "source_type", "source_reliability", "tlp",
+        "analyst_disposition", "analyst_owner", "case_url"
       ],
       "properties": {
         "id": {"type": "string", "minLength": 1},
@@ -180,7 +219,10 @@
         "description": {"type": "string"},
         "source_type": {"$ref": "#/$defs/sourceType"},
         "source_reliability": {"$ref": "#/$defs/reliability"},
-        "tlp": {"$ref": "#/$defs/tlp"}
+        "tlp": {"$ref": "#/$defs/tlp"},
+        "analyst_disposition": {"$ref": "#/$defs/disposition"},
+        "analyst_owner": {"type": "string"},
+        "case_url": {"type": "string"}
       },
       "additionalProperties": false
     },
@@ -206,7 +248,8 @@
         "intel_published", "labels", "tas", "description", "iocs",
         "attack_technique_ids", "mitre_tactics", "source_type",
         "source_reliability", "tlp", "valid_until", "revoked",
-        "analyst_disposition"
+        "analyst_disposition", "analyst_owner", "case_url", "analyst_note",
+        "reviewed_at", "environment_score", "environment_matches"
       ],
       "properties": {
         "id": {"type": "string", "minLength": 1},
@@ -252,14 +295,24 @@
           ]
         },
         "revoked": {"type": "boolean"},
-        "analyst_disposition": {
-          "enum": ["unreviewed", "actioned", "confirmed", "false_positive", "expired", "revoked"]
-        }
+        "analyst_disposition": {"$ref": "#/$defs/disposition"},
+        "analyst_owner": {"type": "string"},
+        "case_url": {"type": "string"},
+        "analyst_note": {"type": "string"},
+        "reviewed_at": {
+          "anyOf": [
+            {"const": ""},
+            {"type": "string", "format": "date-time"}
+          ]
+        },
+        "environment_score": {"type": "integer", "minimum": 0, "maximum": 100},
+        "environment_matches": {"$ref": "#/$defs/stringArray"}
       },
       "additionalProperties": false
     },
     "sourceType": {"enum": ["rss", "slack", "splunk", "opencti", "stix", "unknown"]},
     "reliability": {"enum": ["A", "B", "C", "D", "E", "F"]},
+    "disposition": {"enum": ["unreviewed", "actioned", "confirmed", "false_positive", "expired", "revoked"]},
     "tlp": {"enum": ["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"]}
   }
 }

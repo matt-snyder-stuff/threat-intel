@@ -74,6 +74,7 @@ SPLUNK_PASSWORD=changeme
 # Optional search overrides:
 SPLUNK_SEARCH="search index=threat_intel sourcetype=threat_watch | head 500"
 SPLUNK_EARLIEST=-30d
+SPLUNK_ALLOWED_INDEXES=threat_intel,main,cloud,identity,email,endpoint,network
 # Field mappings (defaults shown — must match your Splunk data):
 SPLUNK_FIELD_NAME=title
 SPLUNK_FIELD_DESC=description

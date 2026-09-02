@@ -46,7 +46,15 @@ else:
         ts = datetime.fromisoformat(gen.replace("Z", "+00:00"))
         age_h = (datetime.now(timezone.utc) - ts).total_seconds() / 3600
         reports = d.get("summary", {}).get("total_reports", "?")
-        label = f"{found} — {age_h:.0f}h old, {reports} reports"
+        handling = d.get("handling", {})
+        reviews = d.get("review_summary", {})
+        environment = d.get("environment_context", {})
+        context_name = environment.get("name", "generic") if environment.get("enabled") else "generic"
+        label = (
+            f"{found} — {age_h:.0f}h old, {reports} reports, "
+            f"{reviews.get('unreviewed', '?')} unreviewed, "
+            f"max {handling.get('max_tlp', '?')}, context {context_name}"
+        )
         if age_h < 25:
             row(PASS, "dataset", label)
         elif age_h < 72:
@@ -123,8 +131,14 @@ if not os.path.exists(env_path):
     row(WARN, "environ", "environment.md not found — peak-hunt agent will treat all indexes as unknown")
 else:
     text = open(env_path).read()
-    unknown = len(re.findall(r'\bUnknown\b', text))
-    total   = len(re.findall(r'\|\s*(?:Active|Inactive|Unknown)\s*\|', text))
+    index_section = text.split("## Available Indexes", 1)[-1].split("### Quick verification SPL", 1)[0]
+    statuses = re.findall(
+        r'^\|\s*`[^`]+`\s*\|.*\|\s*(Active|Inactive|Absent|Unknown)(?:\s+[^|]*)?\s*\|\s*$',
+        index_section,
+        re.MULTILINE,
+    )
+    unknown = statuses.count("Unknown")
+    total = len(statuses)
     if total == 0:
         row(WARN, "environ", "environment.md exists but contains no index status rows")
     elif unknown == 0:

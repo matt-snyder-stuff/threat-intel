@@ -3,6 +3,8 @@
 import json, os, re, pickle, html, sys
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict, Counter
+from operations.context import configured_profile_from_environment, filter_by_tlp, relevance_for_item
+from operations.review_state import load_review_state
 from sources.base import atomic_write_text
 
 # Input paths — set PKL_IN / RAW_IN to match whatever PKL_OUT / RAW_OUT you used
@@ -14,6 +16,10 @@ PUB_IN  = os.environ.get("PUB_IN",  os.environ.get("PUB_SIDECAR", "/tmp/tw-30d-p
 # Output paths — override to serve files from a web root or object storage mount.
 HTML_OUT = os.environ.get("HTML_OUT", "/tmp/threat-watch.html")
 JSON_OUT = os.environ.get("JSON_OUT", "/tmp/threat-watch-data.json")
+REVIEW_STATE_IN = os.environ.get(
+    "REVIEW_STATE_IN",
+    os.path.join(os.path.dirname(os.path.abspath(JSON_OUT)), "review-state.json"),
+)
 
 def esc(s):
     return html.escape(s or "")
@@ -39,6 +45,10 @@ for item in items:
     item.setdefault("valid_until", "")
     item.setdefault("revoked", False)
     item.setdefault("analyst_disposition", "unreviewed")
+    item.setdefault("analyst_owner", "")
+    item.setdefault("case_url", "")
+    item.setdefault("analyst_note", "")
+    item.setdefault("reviewed_at", "")
 
 # For OpenCTI runs, enrich item descriptions from the raw GraphQL dump.
 # For all other sources, items already carry their descriptions — do NOT
@@ -91,6 +101,27 @@ for i in items:
                 candidate = None
     if candidate and candidate >= cutoff_dt and candidate < i["created"]:
         i["created"] = candidate
+
+# Overlay persisted analyst decisions without mutating source-owned records.
+review_state = load_review_state(REVIEW_STATE_IN)
+for item in items:
+    review = review_state["reports"].get(item["id"], {})
+    item["analyst_disposition"] = review.get("disposition", item["analyst_disposition"])
+    item["analyst_owner"] = review.get("owner", "")
+    item["case_url"] = review.get("case_url", "")
+    item["analyst_note"] = review.get("note", "")
+    item["reviewed_at"] = review.get("updated_at", "")
+
+# Apply organization-specific context as an uplift to industry reach.
+environment_profile, environment_profile_enabled, _ = configured_profile_from_environment()
+for item in items:
+    item["environment_score"], item["environment_matches"] = relevance_for_item(item, environment_profile)
+
+# Enforce a publication boundary. More restrictive reports never enter the
+# generated dashboard or canonical JSON, rather than relying on a visual label.
+publish_max_tlp = os.environ.get("PUBLISH_MAX_TLP", "TLP:AMBER").upper()
+items, handling_excluded_count = filter_by_tlp(items, publish_max_tlp)
+ranking_label = "Operational Priority" if environment_profile_enabled else "Industry Reach"
 
 # Threat-actor merges (2026: ShinyHunters/Scattered Spider operate as one cluster)
 TA_MERGES = {
@@ -321,6 +352,8 @@ n_total = len(items)
 n_ai = sum(1 for i in items if any(l == "ai" or l.startswith("ai-") for l in i["all_labels"]))
 n_cloud = sum(1 for i in items if any(l == "cloud" or l.startswith("cloud-") for l in i["all_labels"]))
 n_pubs = len(set(i["publisher"] for i in items))
+review_counts = Counter(i["analyst_disposition"] for i in items)
+review_owned = sum(1 for i in items if i["analyst_owner"])
 
 # Distinct cloud sub-tags
 cloud_subtags = Counter()
@@ -353,8 +386,8 @@ for i in items:
             or (i["confidence"] == prev["confidence"] and i["created"] > prev["created"])):
             ta_best_example[ta] = i
 
-# Pick top 8 actors by total mentions, but only those with ≥2 hits
-top_actors_raw = [(ta, c) for ta, c in ta_counts.most_common() if c >= 2][:8]
+# A single high-confidence report can be the first signal of a new campaign.
+top_actors_raw = ta_counts.most_common(8)
 
 def wow_status(ta):
     last = ta_last_week.get(ta, 0)
@@ -422,6 +455,9 @@ for cluster in clusters:
     if not has_cloud:
         continue
     reach = industry_reach(cluster)
+    environment_score = max(i["environment_score"] for i in cluster)
+    environment_matches = sorted(set(match for i in cluster for match in i["environment_matches"]))
+    priority = min(100, reach + round(environment_score * 0.5))
     # Lead item: highest confidence, then most recent
     lead = max(cluster, key=lambda x: (x["confidence"], x["created"]))
     cloud_tags = sorted(set(l for i in cluster for l in i["all_labels"] if l == "cloud" or l.startswith("cloud-")))
@@ -432,13 +468,16 @@ for cluster in clusters:
         "lead": lead,
         "items": cluster,
         "reach": reach,
+        "environment_score": environment_score,
+        "environment_matches": environment_matches,
+        "priority": priority,
         "cloud_tags": cloud_tags,
         "ai_tags": ai_tags,
         "publishers": pubs,
         "tas": tas_in_cluster,
         "size": len(cluster),
     })
-cloud_clusters.sort(key=lambda c: (-c["reach"], -c["lead"]["confidence"], -c["lead"]["created"].timestamp()))
+cloud_clusters.sort(key=lambda c: (-c["priority"], -c["reach"], -c["lead"]["confidence"], -c["lead"]["created"].timestamp()))
 TOP_CLOUD = cloud_clusters[:8]
 
 # ---- Cloud Threat Watch overview synthesis ----
@@ -446,7 +485,7 @@ def cloud_overview(top_clusters):
     if not top_clusters:
         return None
     total_reports = sum(c["size"] for c in top_clusters)
-    high_reach = sum(1 for c in top_clusters if c["reach"] >= 60)
+    high_reach = sum(1 for c in top_clusters if c["priority"] >= 60)
     # Top cloud sub-tags across cluster lead items + cluster aggregates
     surface_counter = Counter()
     for c in top_clusters:
@@ -1213,6 +1252,14 @@ for idx, c in enumerate(TOP_CLOUD):
     actor_chip = ""
     if c["tas"]:
         actor_chip = f' <span class="actor-chip">⚡ {esc(c["tas"][0])}</span>'
+    review_chip = ""
+    if lead["analyst_disposition"] != "unreviewed":
+        owner = f' · {esc(lead["analyst_owner"])}' if lead["analyst_owner"] else ""
+        review_label = f'{esc(lead["analyst_disposition"].replace("_", " "))}{owner}'
+        if lead["case_url"]:
+            review_chip = f' <a class="actor-chip" href="{esc(lead["case_url"])}" target="_blank">{review_label}</a>'
+        else:
+            review_chip = f' <span class="actor-chip">{review_label}</span>'
     url = lead["url"] or "#"
     # Aggregate MITRE TTPs across cluster items, dedupe by tid
     cluster_mitre = []
@@ -1229,19 +1276,19 @@ for idx, c in enumerate(TOP_CLOUD):
     # tag/reach filter logic doesn't fight with the view selector.
     extra_class = "" if idx < CEO_CLOUD_TOP_N else " ceo-hide"
     cloud_cards_html.append(f"""
-      <article class="threat-card{extra_class}" data-tags="{esc(data_tags)}" data-reach="{c["reach"]}">
+      <article class="threat-card{extra_class}" data-tags="{esc(data_tags)}" data-reach="{c["priority"]}">
         <div class="card-meta">
           <span class="pub-badge">{esc(pub_badge)}</span>
-          <span>{pub_byline}{actor_chip}</span>
+          <span>{pub_byline}{actor_chip}{review_chip}</span>
         </div>
         <h3 class="card-title"><a href="{esc(url)}" target="_blank">{esc(lead["name"])}</a></h3>
         <div class="card-tags">{tags_render}</div>
         {mitre_render}
         <div class="card-footer">
           <div class="reach-bar">
-            <span class="reach-label">Industry Reach</span>
-            <div class="reach-meter"><div class="reach-fill" style="width:{c["reach"]}%"></div></div>
-            <span class="reach-score">{c["reach"]}</span>
+            <span class="reach-label">{ranking_label}</span>
+            <div class="reach-meter"><div class="reach-fill" style="width:{c["priority"]}%"></div></div>
+            <span class="reach-score">{c["priority"]}</span>
           </div>
           <a class="cta-arrow" href="{esc(url)}" target="_blank">Read →</a>
         </div>
@@ -1488,10 +1535,10 @@ def chip(tag, label, cls=""):
 # Reach-range chips (cloud section only)
 reach_buckets = [
     ("any",  "any reach",  "any",   len(TOP_CLOUD)),
-    ("80+",  "critical",   "80+",   sum(1 for c in TOP_CLOUD if c["reach"] >= 80)),
-    ("60",   "high",       "60-79", sum(1 for c in TOP_CLOUD if 60 <= c["reach"] < 80)),
-    ("40",   "medium",     "40-59", sum(1 for c in TOP_CLOUD if 40 <= c["reach"] < 60)),
-    ("0",    "low",        "<40",   sum(1 for c in TOP_CLOUD if c["reach"] < 40)),
+    ("80+",  "critical",   "80+",   sum(1 for c in TOP_CLOUD if c["priority"] >= 80)),
+    ("60",   "high",       "60-79", sum(1 for c in TOP_CLOUD if 60 <= c["priority"] < 80)),
+    ("40",   "medium",     "40-59", sum(1 for c in TOP_CLOUD if 40 <= c["priority"] < 60)),
+    ("0",    "low",        "<40",   sum(1 for c in TOP_CLOUD if c["priority"] < 40)),
 ]
 def reach_chip(key, label, range_label, cnt):
     active = ' active' if key == "any" else ''
@@ -1948,6 +1995,17 @@ css_block = """
       text-transform: uppercase; letter-spacing: 0.12em;
       color: var(--text-fade);
     }
+    .report-search {
+      width: min(440px, 100%);
+      min-height: 36px;
+      padding: 7px 11px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      font: 12px 'JetBrains Mono', monospace;
+    }
+    .report-search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
     .filter-chip {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px; font-weight: 700;
@@ -2269,6 +2327,7 @@ js_block = """
     const cloudCards = document.querySelectorAll('.threat-card[data-reach]');
     const emptyStates = document.querySelectorAll('.filter-empty');
     const resetBtn = document.querySelector('[data-reset]');
+    const searchInput = document.querySelector('[data-report-search]');
     const viewBtns = document.querySelectorAll('.view-btn[data-view]');
     const viewableSections = document.querySelectorAll('[data-views]');
 
@@ -2289,6 +2348,7 @@ js_block = """
 
     let currentTag = 'all';
     let currentReach = 'any';
+    let currentSearch = '';
 
     function inReachRange(score, key) {
       if (key === 'any') return true;
@@ -2311,7 +2371,8 @@ js_block = """
         if (el.dataset.reach !== undefined) {
           matchReach = inReachRange(parseInt(el.dataset.reach, 10), currentReach);
         }
-        el.style.display = (matchTag && matchReach) ? '' : 'none';
+        const matchSearch = !currentSearch || el.textContent.toLowerCase().includes(currentSearch);
+        el.style.display = (matchTag && matchReach && matchSearch) ? '' : 'none';
       });
 
       // Per-section empty states
@@ -2333,9 +2394,15 @@ js_block = """
       currentReach = c.dataset.reach;
       applyFilters();
     }));
+    if (searchInput) searchInput.addEventListener('input', () => {
+      currentSearch = searchInput.value.trim().toLowerCase();
+      applyFilters();
+    });
     if (resetBtn) resetBtn.addEventListener('click', () => {
       currentTag = 'all';
       currentReach = 'any';
+      currentSearch = '';
+      if (searchInput) searchInput.value = '';
       applyFilters();
     });
   })();
@@ -3169,7 +3236,10 @@ OUT = f"""<!doctype html>
         <span>{len(cloud_subtags)} cloud sub-tags</span><span class="dot"></span>
         <span>{len(ai_subtags)} AI sub-tags</span><span class="dot"></span>
         <span>{sum(ta_counts.values())} actor mentions</span><span class="dot"></span>
-        <span>{len(TOP_CLOUD)} active clusters</span>
+        <span>{len(TOP_CLOUD)} active clusters</span><span class="dot"></span>
+        <span>{review_counts.get("unreviewed", 0)} awaiting review</span><span class="dot"></span>
+        <span>publish ≤ {esc(publish_max_tlp.replace("TLP:", "TLP "))}</span>
+        {f'<span class="dot"></span><span>{esc(environment_profile["name"])}</span>' if environment_profile_enabled else ''}
       </div>
     </div>
 
@@ -3210,6 +3280,7 @@ OUT = f"""<!doctype html>
       <span>Filter by topic</span>
       <span class="reset" data-reset>reset</span>
     </div>
+    <input class="report-search" type="search" data-report-search aria-label="Search reports" placeholder="Search reports, actors, publishers, or IOCs">
     <div class="filter-row">
       {chip("all", "all")}
       <div class="filter-divider"></div>
@@ -3220,7 +3291,7 @@ OUT = f"""<!doctype html>
       {"".join(ai_chips)}
     </div>
     <div class="filter-row" style="margin-top:10px">
-      <span class="filter-label">📊 Reach <span class="filter-label-hint">(cloud cards only)</span></span>
+      <span class="filter-label">📊 {ranking_label} <span class="filter-label-hint">(cloud cards only)</span></span>
       {reach_chips_html}
     </div>
   </section>
@@ -3230,8 +3301,8 @@ OUT = f"""<!doctype html>
     <div class="section-head">
       <span class="kicker">Lead</span>
       <h2>Cloud Threat Watch</h2>
-      <span class="count ceo-hide">{len(TOP_CLOUD)} clusters · ranked by Industry Reach</span>
-      <span class="count ceo-only">Top {min(CEO_CLOUD_TOP_N, len(TOP_CLOUD))} of {len(TOP_CLOUD)} · ranked by Industry Reach</span>
+      <span class="count ceo-hide">{len(TOP_CLOUD)} clusters · ranked by {ranking_label}</span>
+      <span class="count ceo-only">Top {min(CEO_CLOUD_TOP_N, len(TOP_CLOUD))} of {len(TOP_CLOUD)} · ranked by {ranking_label}</span>
     </div>
     <p class="section-sub">
       Cloud-shaped incidents from the last {window_days} days, clustered by shared threat
@@ -3428,7 +3499,26 @@ tw_data = {
     "generated_at":  now_iso,
     "window_days":   window_days,
     "cutoff":        cutoff_iso,
-    "schema_version": "1.1",
+    "schema_version": "1.2",
+
+    "environment_context": {
+        "enabled": environment_profile_enabled,
+        "name": environment_profile["name"],
+        "matched_reports": sum(1 for i in items if i["environment_score"] > 0),
+    },
+    "handling": {
+        "max_tlp": publish_max_tlp,
+        "excluded_reports": handling_excluded_count,
+    },
+    "review_summary": {
+        "unreviewed": review_counts.get("unreviewed", 0),
+        "actioned": review_counts.get("actioned", 0),
+        "confirmed": review_counts.get("confirmed", 0),
+        "false_positive": review_counts.get("false_positive", 0),
+        "expired": review_counts.get("expired", 0),
+        "revoked": review_counts.get("revoked", 0),
+        "owned": review_owned,
+    },
 
     # ── Summary counts ───────────────────────────────────────────────────────
     "summary": {
@@ -3455,6 +3545,9 @@ tw_data = {
     "cloud_clusters": [
         {
             "reach_score":  c["reach"],
+            "environment_score": c["environment_score"],
+            "environment_matches": c["environment_matches"],
+            "priority_score": c["priority"],
             "size":         c["size"],
             "cloud_tags":   c["cloud_tags"],
             "ai_tags":      c["ai_tags"],
@@ -3472,6 +3565,9 @@ tw_data = {
                 "source_type": c["lead"].get("source_type", "unknown"),
                 "source_reliability": c["lead"].get("source_reliability", "C"),
                 "tlp": c["lead"].get("tlp", "TLP:AMBER"),
+                "analyst_disposition": c["lead"].get("analyst_disposition", "unreviewed"),
+                "analyst_owner": c["lead"].get("analyst_owner", ""),
+                "case_url": c["lead"].get("case_url", ""),
             },
             "reports": [
                 {
@@ -3494,6 +3590,12 @@ tw_data = {
                     "valid_until":          i.get("valid_until", ""),
                     "revoked":              i.get("revoked", False),
                     "analyst_disposition":  i.get("analyst_disposition", "unreviewed"),
+                    "analyst_owner":        i.get("analyst_owner", ""),
+                    "case_url":             i.get("case_url", ""),
+                    "analyst_note":         i.get("analyst_note", ""),
+                    "reviewed_at":          i.get("reviewed_at", ""),
+                    "environment_score":    i.get("environment_score", 0),
+                    "environment_matches":  i.get("environment_matches", []),
                 }
                 for i in c["items"]
             ],
@@ -3501,7 +3603,7 @@ tw_data = {
         for c in TOP_CLOUD
     ],
 
-    # ── Threat actors (top 8, ≥2 reports) ───────────────────────────────────
+    # ── Threat actors (top 8, including newly observed actors) ──────────────
     "threat_actors": [
         {
             "name":    ta,
@@ -3616,6 +3718,12 @@ tw_data = {
                 "valid_until":          i.get("valid_until", ""),
                 "revoked":              i.get("revoked", False),
                 "analyst_disposition":  i.get("analyst_disposition", "unreviewed"),
+                "analyst_owner":        i.get("analyst_owner", ""),
+                "case_url":             i.get("case_url", ""),
+                "analyst_note":         i.get("analyst_note", ""),
+                "reviewed_at":          i.get("reviewed_at", ""),
+                "environment_score":    i.get("environment_score", 0),
+                "environment_matches":  i.get("environment_matches", []),
             }
             for i in sorted(last_24h_items, key=lambda x: -x["created"].timestamp())
         ],

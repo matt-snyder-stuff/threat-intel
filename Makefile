@@ -1,4 +1,4 @@
-.PHONY: help run-rss run-opencti run-slack run-splunk run-stix build serve clean status \
+.PHONY: help run-rss run-opencti run-slack run-splunk run-stix build serve clean status review \
         docker-rss docker-opencti docker-slack docker-splunk docker-stix docker-serve \
         test test-docker \
         opencti-up opencti-seed opencti-down \
@@ -26,7 +26,7 @@ help:
 	@echo "  make docker-serve     docker compose --profile serve up"
 	@echo ""
 	@echo "Validation:"
-	@echo "  make test           Run RSS pipeline + validate output (local)"
+	@echo "  make test           Run unit, contract, and detection validation"
 	@echo "  make test-docker    Build image, run RSS+OpenCTI(mock) pipelines in Docker, validate"
 	@echo ""
 	@echo "OpenCTI live instance (http://localhost:8080):"
@@ -36,6 +36,7 @@ help:
 	@echo ""
 	@echo "Health check:"
 	@echo "  make status           Dataset freshness, source connectivity, env completeness"
+	@echo "  make review ARGS='list'  Inspect or update persistent analyst review state"
 	@echo ""
 	@echo "Terraform (AWS + Aviatrix):"
 	@echo "  make tf-init          terraform init"
@@ -47,6 +48,9 @@ help:
 
 status:
 	@[ -f .env ] && set -a && . ./.env && set +a; python3 check_pipeline.py
+
+review:
+	python3 -m operations.review_state $(ARGS)
 
 # ── Laptop targets ─────────────────────────────────────────────────────────────
 # Outputs go to ./data/ so `make serve` works immediately after any run-* target
@@ -95,7 +99,9 @@ clean:
 
 test:
 	python3 -m unittest tests.test_security_contracts tests.test_lifecycle \
-	  tests.test_splunk_policy tests.test_source_contracts
+	  tests.test_splunk_policy tests.test_source_contracts \
+	  tests.test_operator_workflows tests.test_detection_artifacts
+	python3 tools/validate_detections.py
 
 test-docker:
 	@mkdir -p /tmp/ti-test-rss /tmp/ti-test-opencti /tmp/ti-test-splunk

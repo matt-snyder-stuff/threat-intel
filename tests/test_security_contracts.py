@@ -32,7 +32,7 @@ class SecurityContracts(unittest.TestCase):
         schema_path = ROOT / "schema" / "threat-watch-data.schema.json"
         schema = json.loads(schema_path.read_text())
         self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema")
-        self.assertEqual(schema["properties"]["schema_version"]["const"], "1.1")
+        self.assertEqual(schema["properties"]["schema_version"]["const"], "1.2")
 
     def test_repository_security_baseline_exists(self):
         for relative in (
@@ -44,6 +44,18 @@ class SecurityContracts(unittest.TestCase):
         ):
             with self.subTest(path=relative):
                 self.assertTrue((ROOT / relative).is_file())
+
+    def test_dashboard_exposes_operator_search(self):
+        generator = (ROOT / "generator" / "build.py").read_text()
+        self.assertIn("data-report-search", generator)
+        self.assertIn("currentSearch", generator)
+
+    def test_splunk_ingests_canonical_ioc_metadata(self):
+        searches = (ROOT / "splunk" / "threat_watch" / "default" / "savedsearches.conf").read_text()
+        self.assertIn("path=iocs.cve{}", searches)
+        self.assertIn("path=iocs.sha256{}", searches)
+        self.assertIn("path=confidence", searches)
+        self.assertNotIn("eval confidence = 0", searches)
 
 
 if __name__ == "__main__":
