@@ -1,0 +1,25 @@
+title: Suspicious Cloud Valid Account Activity
+id: 66c4a42b-f015-4fd8-914b-2dceb32731fa
+status: experimental
+description: Detects unusual privileged cloud API activity identified during a threat hunt.
+date: 2026-09-02
+author: threat-intel-pipeline
+references:
+  - https://attack.mitre.org/techniques/T1078/004/
+tags:
+  - attack.initial-access
+  - attack.t1078.004
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventName:
+      - CreateAccessKey
+      - AssumeRole
+  filter_expected_roles:
+    userIdentity.arn|endswith: /approved-automation
+  condition: selection and not filter_expected_roles
+falsepositives:
+  - Approved identity automation not yet represented in the role allowlist.
+level: high

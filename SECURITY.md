@@ -41,6 +41,11 @@ Agents that post to Slack must:
 - Use a bot token with the minimum required scopes (`chat:write` only)
 - Not forward raw report descriptions directly — always attribute and truncate
 
+Generated dashboard and JSON artifacts enforce `PUBLISH_MAX_TLP` before
+rendering. The default ceiling is `TLP:AMBER`; publishing `TLP:AMBER+STRICT` or
+`TLP:RED` requires an explicit configuration change and an appropriately
+access-controlled distribution path.
+
 The repository tests these declarations as security contracts in
 `tests/test_security_contracts.py`. Runtime authorization must still be enforced
 by Splunk, Slack, network policy, and the agent execution platform; prompt text
@@ -57,6 +62,15 @@ run records to a write-once or access-controlled system of record and retain:
 - dataset generation time and content hash
 - exact searches, time bounds, result counts, and Splunk search IDs
 - findings, dispositions, detection artifacts, and approval references
+
+The local review-state sidecar can contain analyst identities, internal case
+URLs, and notes. Keep it under the ignored `data/` directory, restrict file
+access, and synchronize it to an approved case platform for multi-user use.
+
+Sigma and SPL artifacts under `detections/` must pass
+`tools/validate_detections.py`. Validation checks structure, bounded time scope,
+explicit indexes, and rejects SPL write commands; it does not replace analyst
+tuning or deployment approval.
 
 ## Reporting a vulnerability
 

@@ -689,6 +689,10 @@ Enrich IPs, domains, and CVEs from confirmed/investigate findings. Append result
 ### 4a. Generate detection artifacts
 
 For every finding classified as Confirmed or Investigate, produce a detection artifact at the highest achievable tier.
+Write Sigma rules to `detections/generated/<date>-<slug>.yml` and Splunk searches to
+`detections/generated/<date>-<slug>.spl`. Run `python3 tools/validate_detections.py`
+before closing the hunt. A validation failure leaves the hunt open and must be
+reported; do not leave the only copy of a detection embedded in `/tmp` reports.
 
 **Sigma rule** (for IOC-based or stable behavioral patterns):
 
@@ -1107,5 +1111,5 @@ Next:
 - Never close a hypothesis as "negative" when the required data source was absent. The correct classification is "inconclusive — data absent." This distinction matters for credibility.
 - Never skip Phase 1 (the hunt plan). An undocumented hunt cannot be reproduced and cannot be handed off to another analyst.
 - The query log is not optional. Write every query and result count to the JSON log, including queries that returned zero results.
-- Detection artifacts belong in version control. The Sigma rules and SPL searches produced here should be committed to the team's detection repository, not left in `/tmp`.
+- Detection artifacts belong in version control under `detections/generated/` and must pass `tools/validate_detections.py` before review.
 - Tuning notes in detection artifacts are not optional. A detection without FP documentation will be disabled within 48 hours of deployment.

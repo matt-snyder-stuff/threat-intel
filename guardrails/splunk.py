@@ -17,8 +17,8 @@ from urllib.parse import urlencode
 
 
 DEFAULT_ALLOWED_INDEXES = {
-    "aws", "azure", "endpoint", "gcp", "main", "network", "notable",
-    "proxy", "security", "threat_intel",
+    "ad", "aws", "azure", "cloud", "email", "endpoint", "gcp", "identity",
+    "main", "network", "notable", "proxy", "security", "threat_intel",
 }
 BLOCKED_COMMANDS = {
     "collect", "delete", "dump", "map", "outputcsv", "outputlookup",

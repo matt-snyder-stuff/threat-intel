@@ -3,6 +3,21 @@
 All notable changes are documented here. Releases follow Semantic Versioning;
 the canonical JSON contract is versioned independently by `schema_version`.
 
+## [1.2.0] - 2026-09-02
+
+### Added
+
+- Environment-specific operational priority scoring from a validated JSON profile.
+- Persistent analyst dispositions, ownership, case links, and notes via review state.
+- Enforced TLP publication ceilings with excluded-report accounting.
+- Version-controlled Sigma and SPL detection validation.
+
+### Changed
+
+- Newly observed threat actors remain visible after a single report.
+- Splunk KV Store ingestion consumes canonical IOC arrays and preserves metadata.
+- Splunk agent index defaults now match the shipped environment model.
+
 ## [1.1.0] - 2026-09-02
 
 ### Added
@@ -19,3 +34,4 @@ the canonical JSON contract is versioned independently by `schema_version`.
 - Containers run as a non-root user with immutable base-image references.
 
 [1.1.0]: https://github.com/matt-snyder-stuff/threat-intel/releases/tag/v1.1.0
+[1.2.0]: https://github.com/matt-snyder-stuff/threat-intel/releases/tag/v1.2.0

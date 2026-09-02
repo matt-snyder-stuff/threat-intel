@@ -7,6 +7,11 @@ x-pipeline-security: &pipeline-security
   tmpfs:
     - /tmp:size=64m,mode=1777
 
+x-pipeline-environment: &pipeline-environment
+  ENVIRONMENT_PROFILE: ${ENVIRONMENT_PROFILE:-}
+  REVIEW_STATE_IN: ${REVIEW_STATE_IN:-/data/review-state.json}
+  PUBLISH_MAX_TLP: ${PUBLISH_MAX_TLP:-TLP:AMBER}
+
 services:
 
   # ── RSS source (no credentials needed) ─────────────────────────────────────
@@ -18,6 +23,7 @@ services:
     volumes:
       - ./data:/data
     environment:
+      <<: *pipeline-environment
       RSS_FEEDS: ${RSS_FEEDS:-}
       CUTOFF_DAYS: ${CUTOFF_DAYS:-30}
 
@@ -30,6 +36,7 @@ services:
     volumes:
       - ./data:/data
     environment:
+      <<: *pipeline-environment
       OPENCTI_URL: ${OPENCTI_URL}
       OPENCTI_TOKEN: ${OPENCTI_TOKEN}
       CUTOFF_DAYS: ${CUTOFF_DAYS:-30}
@@ -43,6 +50,7 @@ services:
     volumes:
       - ./data:/data
     environment:
+      <<: *pipeline-environment
       SLACK_TOKEN: ${SLACK_TOKEN}
       SLACK_CHANNEL_ID: ${SLACK_CHANNEL_ID}
       SLACK_LOOKBACK_DAYS: ${SLACK_LOOKBACK_DAYS:-30}
@@ -56,6 +64,7 @@ services:
     volumes:
       - ./data:/data
     environment:
+      <<: *pipeline-environment
       SPLUNK_URL: ${SPLUNK_URL}
       SPLUNK_TOKEN: ${SPLUNK_TOKEN:-}
       SPLUNK_USERNAME: ${SPLUNK_USERNAME:-}
@@ -77,6 +86,7 @@ services:
     volumes:
       - ./data:/data
     environment:
+      <<: *pipeline-environment
       TAXII_URL: ${TAXII_URL:-}
       TAXII_TOKEN: ${TAXII_TOKEN:-}
       TAXII_USERNAME: ${TAXII_USERNAME:-}

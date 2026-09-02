@@ -19,7 +19,7 @@ Demo project for the talk **"Building AI Agents for Threat Intel"**.
 Zero pip dependencies for the core pipeline. Python 3.9+. Runs locally or on a schedule via Claude Code's `CronCreate`.
 (The `demo/sec1390` sub-project requires `pdfplumber` — see its own `requirements.txt`.)
 
-Current release: `1.1.0`. See [`CHANGELOG.md`](CHANGELOG.md) for compatibility notes and release history.
+Current release: `1.2.0`. See [`CHANGELOG.md`](CHANGELOG.md) for compatibility notes and release history.
 
 ---
 
@@ -100,6 +100,12 @@ python3 run.py --source stix --build
 
 Use `python3 run.py --help` to see all options and env vars for each source.
 
+To rank intelligence against your actual estate, customize
+[`environment-profile.example.json`](environment-profile.example.json), set
+`ENVIRONMENT_PROFILE` to its path, and rebuild. Set `PUBLISH_MAX_TLP` to the
+most restrictive marking permitted in the generated artifact; the default is
+`TLP:AMBER` and more restrictive reports are excluded before rendering.
+
 ---
 
 ## SEC1390 .conf Demo
@@ -179,6 +185,28 @@ A high reach score means the story is well-corroborated across sources and invol
 
 **Containment Relevance** — reports scored against patterns that network-level controls address: lateral movement, supply chain, credential reuse, container/K8s pivot, C2/exfil, ransomware. Heuristic keyword matching against titles and descriptions, not retroactive attribution or live data correlation.
 
+**Operational Priority** (when `ENVIRONMENT_PROFILE` is configured) preserves
+Industry Reach and adds up to half of the report's 0–100 environment relevance
+score. Matches can include deployed labels, vendors, watched actors, and
+business-critical keywords. Both component scores and matching reasons remain
+in the JSON for analyst review.
+
+### Analyst review state
+
+Review decisions persist in `data/review-state.json` and are overlaid during
+each build. The source records remain unchanged.
+
+```bash
+make review ARGS='set report--123 --disposition actioned --owner soc@example.com --case-url https://cases.example/IR-42 --note "Detection assigned"'
+make review ARGS='list'
+make build
+```
+
+The generated dashboard and JSON show disposition, owner, case linkage, review
+time, and backlog counts. This local sidecar is designed for a single-writer
+workflow; larger teams should synchronize these fields with their TIP or case
+platform.
+
 ---
 
 ## Claude Agents
@@ -208,18 +236,25 @@ The standalone [`agent/digest-agent.md`](agent/digest-agent.md) works without Cl
 | `/hunt-live [focus]` | Generate and execute SPL queries live against Splunk; returns actual findings |
 | `/enrich [iocs]` | Enrich extracted or provided IOCs via public APIs |
 | `/start-digest` | Register a daily Slack digest via Claude Code's `CronCreate` |
+| `/review <id> <disposition>` | Persist assignment, case linkage, notes, and analyst disposition, then rebuild |
 
 ---
 
 ## Dataset schema (`threat-watch-data.json`)
 
-The JSON export is the single canonical dataset consumed by all downstream agents and tools. Schema version `1.1`; the machine-readable contract is [`schema/threat-watch-data.schema.json`](schema/threat-watch-data.schema.json).
+The JSON export is the single canonical dataset consumed by all downstream agents and tools. Schema version `1.2`; the machine-readable contract is [`schema/threat-watch-data.schema.json`](schema/threat-watch-data.schema.json).
 
 ```json
 {
   "generated_at":   "ISO timestamp",
   "window_days":    30,
-  "schema_version": "1.1",
+  "schema_version": "1.2",
+  "environment_context": {"enabled": true, "name": "Production", "matched_reports": 17},
+  "handling": {"max_tlp": "TLP:AMBER", "excluded_reports": 2},
+  "review_summary": {
+    "unreviewed": 12, "actioned": 3, "confirmed": 1,
+    "false_positive": 1, "expired": 0, "revoked": 0, "owned": 4
+  },
 
   "summary": {
     "total_reports": 142, "cloud": 89, "ai": 53, "publishers": 18
@@ -232,7 +267,7 @@ The JSON export is the single canonical dataset consumed by all downstream agent
   },
 
   "cloud_clusters": [{
-    "reach_score": 87, "size": 23,
+    "reach_score": 87, "environment_score": 60, "priority_score": 100, "size": 23,
     "cloud_tags": ["cloud-aws", "cloud-container"], "ai_tags": [],
     "publishers": ["BleepingComputer"], "threat_actors": ["Lazarus"],
     "lead":    { "id": "...", "name": "...", "url": "...", "labels": [...] },
@@ -274,6 +309,10 @@ The JSON export is the single canonical dataset consumed by all downstream agent
 | `valid_until` | ISO string | structured sources | Indicator validity end when supplied; blank means unknown, not infinite |
 | `revoked` | boolean | all | Retraction status; revoked STIX objects are excluded during ingestion |
 | `analyst_disposition` | enum | all | Starts as `unreviewed`; downstream review systems can record disposition |
+| `analyst_owner` | string | review state | Person or team responsible for follow-up |
+| `case_url` | string | review state | Link to the incident, case, or work item |
+| `analyst_note` / `reviewed_at` | string | review state | Persisted decision context and review timestamp |
+| `environment_score` / `environment_matches` | integer/list | build profile | Organization-specific relevance and auditable match reasons |
 
 **Remaining enrichment gaps** — these require an external CTI platform or analyst workflow:
 
@@ -281,7 +320,7 @@ The JSON export is the single canonical dataset consumed by all downstream agent
 |---------------|---------------|-------------|
 | `ioc_first_seen` / `ioc_last_seen` | An IOC that hasn't been observed in 18 months may not be worth hunting. | Requires enrichment pass against VirusTotal or MISP |
 | IOC-specific expiry | Report-level `valid_until` is preserved, but RSS and Slack do not provide indicator validity windows. | Enrich against a CTI platform; do not invent expiry dates |
-| Disposition persistence | The schema supports `analyst_disposition`, but this static pipeline does not provide a multi-user review database. | Integrate with OpenCTI, a case platform, or a versioned review service |
+| Multi-user review concurrency | The local review sidecar persists workflow state but is single-writer. | Synchronize with OpenCTI, a case platform, or a versioned review service |
 
 **Consuming the dataset from an agent:**
 
@@ -348,7 +387,10 @@ directly for better fidelity. `build.py`, all agents, and all commands work with
 run.py                         # CLI: --source {splunk,opencti,slack,rss,stix} [--build]
 check_pipeline.py              # standalone pipeline health check (see make status)
 environment.md                 # YOUR DEPLOYMENT — update Splunk indexes, sourcetypes, fields
+environment-profile.example.json # weighted organization-specific relevance profile
 prior-hunts/                   # auto-written hunt index — one JSON per /peak-hunt run
+operations/                    # review-state CLI and environment scoring
+detections/                    # validated, version-controlled Sigma and SPL artifacts
 sources/
 ├── base.py                    # shared: actors, publishers, vendors, label detection
 ├── splunk.py                  # Splunk REST API source (job submit → poll → results)
@@ -357,7 +399,7 @@ sources/
 ├── rss.py                     # RSS/Atom source
 └── stix.py                    # STIX 2.x / TAXII 2.x source (zero extra dependencies)
 generator/
-└── build.py                   # aggregation + scoring → HTML + JSON  ← do not modify
+└── build.py                   # aggregation + scoring → HTML + JSON
 splunk/
 └── threat_watch/              # Splunk 9.x app — KV Store ingestion, dashboard, hunt alerts
     └── (see splunk/README.md for install instructions)

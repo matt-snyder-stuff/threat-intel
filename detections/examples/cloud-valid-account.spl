@@ -1,0 +1,6 @@
+/* owner: detection-engineering | source: T1078.004 hunt */
+index=cloud sourcetype=aws:cloudtrail earliest=-1h
+| search eventName IN (CreateAccessKey, AssumeRole)
+| where NOT like('userIdentity.arn', "%/approved-automation")
+| stats count values(sourceIPAddress) as source_ips by 'userIdentity.arn', eventName
+| where count > 5

@@ -10,6 +10,7 @@ RUN groupadd --gid 10001 app \
 COPY sources/ sources/
 COPY generator/ generator/
 COPY guardrails/ guardrails/
+COPY operations/ operations/
 COPY agent/ agent/
 COPY .claude/ .claude/
 COPY run.py .
@@ -25,7 +26,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     RAW_OUT=/data/tw-30d.json \
     PUB_SIDECAR=/data/tw-30d-published.json \
     HTML_OUT=/data/threat-watch.html \
-    JSON_OUT=/data/threat-watch-data.json
+    JSON_OUT=/data/threat-watch-data.json \
+    REVIEW_STATE_IN=/data/review-state.json \
+    PUBLISH_MAX_TLP=TLP:AMBER
 
 VOLUME ["/data"]
 

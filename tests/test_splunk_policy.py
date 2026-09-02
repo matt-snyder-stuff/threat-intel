@@ -26,6 +26,11 @@ class SplunkPolicyTests(unittest.TestCase):
     def test_accepts_scoped_read_only_query(self):
         validate_query("index=security action=blocked | stats count", "-24h", 50)
 
+    def test_default_policy_covers_shipped_environment_indexes(self):
+        for index in ("cloud", "identity", "email", "endpoint", "network", "threat_intel"):
+            with self.subTest(index=index):
+                validate_query(f"index={index} | stats count", "-24h", 50)
+
     def test_rejects_dangerous_commands(self):
         for command in ("collect", "delete", "outputlookup", "sendalert", "map"):
             with self.subTest(command=command), self.assertRaises(QueryPolicyError):

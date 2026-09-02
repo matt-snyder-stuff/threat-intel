@@ -30,7 +30,8 @@ REQUIRED_ITEM_FIELDS = [
 ]
 
 REQUIRED_JSON_KEYS = [
-    "generated_at", "schema_version", "window_days", "cutoff", "summary",
+    "generated_at", "schema_version", "window_days", "cutoff", "environment_context",
+    "handling", "review_summary", "summary",
     "executive_overview", "cloud_clusters", "threat_actors", "vendor_watch",
     "industry_trends", "containment_impact", "last_24h",
 ]
@@ -191,8 +192,8 @@ def validate_json(path):
     with open(path) as f:
         d = json.load(f)
 
-    if d.get("schema_version") != "1.1":
-        print(f"  FAIL: expected schema_version 1.1, got {d.get('schema_version')!r}")
+    if d.get("schema_version") != "1.2":
+        print(f"  FAIL: expected schema_version 1.2, got {d.get('schema_version')!r}")
         errors += 1
 
     for key in REQUIRED_JSON_KEYS:
@@ -206,6 +207,28 @@ def validate_json(path):
     last_24h = d.get("last_24h", {})
     if last_24h.get("count") != len(last_24h.get("reports", [])):
         print("  FAIL: last_24h.count does not match reports length")
+        errors += 1
+
+    review_summary = d.get("review_summary", {})
+    disposition_total = sum(review_summary.get(key, 0) for key in (
+        "unreviewed", "actioned", "confirmed", "false_positive", "expired", "revoked"
+    ))
+    if disposition_total != summary.get("total_reports"):
+        print("  FAIL: review disposition counts do not match total reports")
+        errors += 1
+
+    tlp_order = {"TLP:CLEAR": 0, "TLP:GREEN": 1, "TLP:AMBER": 2, "TLP:AMBER+STRICT": 3, "TLP:RED": 4}
+    maximum_tlp = d.get("handling", {}).get("max_tlp")
+    published_tlps = [
+        report.get("tlp")
+        for cluster in d.get("cloud_clusters", [])
+        for report in cluster.get("reports", [])
+    ] + [report.get("tlp") for report in last_24h.get("reports", [])]
+    if maximum_tlp not in tlp_order or any(
+        value not in tlp_order or tlp_order[value] > tlp_order[maximum_tlp]
+        for value in published_tlps
+    ):
+        print("  FAIL: published report exceeds handling.max_tlp")
         errors += 1
 
     report_ids = [
@@ -231,7 +254,8 @@ def validate_json(path):
         for report in cluster.get("reports", []):
             for field in ("intel_published", "iocs", "attack_technique_ids", "description",
                           "source_type", "source_reliability", "tlp", "valid_until",
-                          "revoked", "analyst_disposition"):
+                          "revoked", "analyst_disposition", "analyst_owner", "case_url",
+                          "environment_score", "environment_matches"):
                 if field not in report:
                     report_ioc_errors += 1
     if report_ioc_errors:
@@ -247,7 +271,8 @@ def validate_json(path):
     for report in d.get("last_24h", {}).get("reports", []):
         for field in ("intel_published", "iocs", "attack_technique_ids", "source_type",
                       "source_reliability", "tlp", "valid_until", "revoked",
-                      "analyst_disposition"):
+                      "analyst_disposition", "analyst_owner", "case_url",
+                      "environment_score", "environment_matches"):
             if field not in report:
                 last24_ioc_errors += 1
     if last24_ioc_errors:

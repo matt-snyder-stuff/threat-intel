@@ -1,0 +1,24 @@
+{
+  "name": "Example production environment",
+  "priorities": {
+    "labels": {
+      "cloud-aws": 25,
+      "cloud-k8s": 30,
+      "cloud-saas": 15
+    },
+    "vendors": {
+      "Okta": 30,
+      "GitHub": 25,
+      "Snowflake": 20
+    },
+    "threat_actors": {
+      "Scattered Spider": 35,
+      "Volt Typhoon": 35
+    },
+    "keywords": {
+      "identity provider": 15,
+      "supply chain": 20,
+      "internet-facing": 25
+    }
+  }
+}
